@@ -46,8 +46,8 @@ def grades_main(btoken):
 
     # Removing unwanted columntypes and subjects
     remove_items = []
-    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom", "SEGemiddeldeKolom"] # Chance to all the columntypes you don't need (usually, only toetskolom is needed if you're working with grades from tests)
-    subjects_to_remove = ["4a-in", "LOB", "MEN"] # Chance to all the subjects you don't need (usually subjects you don't get grades from)
+    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom", "SEGemiddeldeKolom"] # Change to all the columntypes you don't need (usually, only toetskolom is needed if you're working with grades from tests)
+    subjects_to_remove = ["4a-in", "LOB", "MEN"] # Change to all the subjects you don't need (usually subjects you don't get grades from)
 
     for item in data:
         item_type = item["type"]
