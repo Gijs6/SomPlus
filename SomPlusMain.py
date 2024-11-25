@@ -241,7 +241,10 @@ def schedule_main(btoken):
     for item in lessons_to_remove:
         data.remove(item)
 
-    schedule_data = [["" for _ in range(5)] for _ in range(9)]
+    maximum_amount_lessons = 9  # Change to adjust the number of maximum lessons on a day
+
+    schedule_data = [["" for _ in range(5)] for _ in range(maximum_amount_lessons)]
+
 
     for item in data:
         start_hour = item["beginLesuur"]
