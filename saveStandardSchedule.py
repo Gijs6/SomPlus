@@ -4,10 +4,9 @@ import pickle
 
 
 # Choose a week (probably in the (far) future) were your schedule has no changes
-# from (monday)
-starting_date = "2024-12-09"
-# to (saturday)
-end_date = "2024-12-14"
+
+starting_date = "2024-12-09" # from (monday)
+end_date = "2024-12-14" # to (saturday)
 
 url = f"https://api.somtoday.nl/rest/v1/afspraken?sort=asc-id&additional=vak&additional=docentAfkortingen&additional=leerlingen&begindatum={starting_date}&einddatum={end_date}"
 
@@ -21,7 +20,7 @@ headers = {
 response = requests.get(url, headers = headers)
 data = response.json()
 
-# Change
+
 maximum_amount_lessons = 9  # Change to adjust the number of maximum lessons on a day
 schedule_data = [["" for _ in range(5)] for _ in range(maximum_amount_lessons)]
 
