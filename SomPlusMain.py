@@ -44,10 +44,10 @@ def grades_main(btoken):
     for item in response_data["items"]:
         data.append(item)
 
-    # Removing unwanted subjects
+    # Removing unwanted columntypes and subjects
     remove_items = []
-    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom", "SEGemiddeldeKolom"]
-    subjects_to_remove = ["4a-in", "LOB", "MEN"]
+    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom", "SEGemiddeldeKolom"] # Chance to all the columntypes you don't need (usually, only toetskolom is needed if you're working with grades from tests)
+    subjects_to_remove = ["4a-in", "LOB", "MEN"] # Chance to all the subjects you don't need (usually subjects you don't get grades from)
 
     for item in data:
         item_type = item["type"]
@@ -56,7 +56,7 @@ def grades_main(btoken):
         if item_type in types_to_remove or item_name in subjects_to_remove:
             remove_items.append(item)
         else:
-            # Removing items with no grades/results
+            # Removing items with no results
             try:
                 result = item["geldendResultaat"]
             except KeyError:
