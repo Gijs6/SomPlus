@@ -11,3 +11,4 @@ Things you need to adjust for the script to work: (these things work very differ
 * `subjects_to_remove` in **grades_main** (usually subjects you don't get grades from; this part of the code is not used that often, but is there just in case)
 * `maximum_amount_lessons` in **schedule_notification_generator**, **schedule_main** AND **saveStandardSchedule.py**
 * `subjects_in_schedule` in **schedule_main**
+* `btoken` in **saveStandardSchedule.py** (you only need to save a new standard schedule if you have a new one, so you can just generate a extra token when you need to run this script)
