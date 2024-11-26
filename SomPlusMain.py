@@ -26,7 +26,7 @@ def refresh_tokens():
 
 
 def grades_main(btoken):
-    lln_id = "???"
+    lln_id = "???" # Not your studentnumber (leerlingnummer) but the long id you get via /rest/v1/account/
 
     url = f"https://api.somtoday.nl/rest/v1/resultaten/huidigVoorLeerling/{lln_id}"
 
