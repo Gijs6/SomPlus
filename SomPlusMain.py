@@ -257,9 +257,9 @@ def schedule_main(btoken, api_url):
                 # Sometimes item["additionalObjects"]["vak"]["afkorting"] will be empty, so it checks if any subject title is in the description of the lesson
                 lesson_info = item["titel"]
                 subject_abbr = ""
-                b = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL', 'SCHK',
+                subjects_in_schedule = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL', 'SCHK',
                      'WISB']  # Change to all the subjects you want in your schedule
-                for afk in b:
+                for afk in subjects_in_schedule:
                     if afk in lesson_info:
                         subject_abbr = afk
                 if subject_abbr == "":
