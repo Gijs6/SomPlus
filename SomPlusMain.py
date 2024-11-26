@@ -21,14 +21,15 @@ def refresh_tokens():
         file.write(data.get("refresh_token", rtoken1))
 
     btoken = data.get("access_token")
+    api_url = data.get("somtoday_api_url", "https://api.somtoday.nl")
 
-    return btoken
+    return btoken, api_url
 
 
-def grades_main(btoken):
+def grades_main(btoken, api_url):
     lln_id = "???" # Not your studentnumber (leerlingnummer) but the long id you get via /rest/v1/account/
 
-    url = f"https://api.somtoday.nl/rest/v1/resultaten/huidigVoorLeerling/{lln_id}"
+    url = f"{api_url}/rest/v1/resultaten/huidigVoorLeerling/{lln_id}"
 
     headers = {
         "Authorization": f"Bearer {btoken}",
@@ -201,7 +202,7 @@ def schedule_notification_generator(old_schedule, new_schedule):
     return changes_notification
 
 
-def schedule_main(btoken):
+def schedule_main(btoken, api_url):
     today = datetime.now(pytz.timezone("Europe/Amsterdam"))
     current_hour = int(today.strftime("%H"))
     weekday = today.weekday()
@@ -217,7 +218,7 @@ def schedule_main(btoken):
     saturday_format = saturday.strftime("%Y-%m-%d")
     new_week_number = monday.strftime("%W")
 
-    url = f"https://api.somtoday.nl/rest/v1/afspraken?sort=asc-id&additional=vak&additional=docentAfkortingen&additional=leerlingen&begindatum={monday_format}&einddatum={saturday_format}"
+    url = f"{api_url}/rest/v1/afspraken?sort=asc-id&additional=vak&additional=docentAfkortingen&additional=leerlingen&begindatum={monday_format}&einddatum={saturday_format}"
 
     headers = {
         "Authorization": f"Bearer {btoken}",
@@ -298,15 +299,15 @@ def schedule_main(btoken):
 
 
 try:
-    btoken = refresh_tokens()
+    btoken, api_url = refresh_tokens()
 
     try:
-        grades_main(btoken)
+        grades_main(btoken, api_url)
     except Exception as e:
         print("Error with grades", e)
 
     try:
-        schedule_main(btoken)
+        schedule_main(btoken, api_url)
     except Exception as e:
         print("Error with schedule", e)
 
