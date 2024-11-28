@@ -27,7 +27,7 @@ def refresh_tokens():
 
 
 def grades_main(btoken, api_url):
-    lln_id = "???" # Not your studentnumber (leerlingnummer) but the long id you get via /rest/v1/account/
+    lln_id = "???"  # Not your studentnumber (leerlingnummer) but the long id you get via /rest/v1/account/
 
     url = f"{api_url}/rest/v1/resultaten/huidigVoorLeerling/{lln_id}"
 
@@ -47,8 +47,10 @@ def grades_main(btoken, api_url):
 
     # Removing unwanted columntypes and subjects
     remove_items = []
-    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom", "SEGemiddeldeKolom"] # Change to all the columntypes you don't need (usually, only toetskolom is needed if you're working with grades from tests)
-    subjects_to_remove = ["4a-in", "LOB", "MEN"] # Change to all the subjects you don't need (usually subjects you don't get grades from)
+    types_to_remove = ["PeriodeGemiddeldeKolom", "RapportGemiddeldeKolom",
+                       "SEGemiddeldeKolom"]  # Change to all the columntypes you don't need (usually, only toetskolom is needed if you're working with grades from tests)
+    subjects_to_remove = ["4a-in", "LOB",
+                          "MEN"]  # Change to all the subjects you don't need (usually subjects you don't get grades from)
 
     for item in data:
         item_type = item["type"]
@@ -246,7 +248,6 @@ def schedule_main(btoken, api_url):
 
     schedule_data = [["" for _ in range(5)] for _ in range(maximum_amount_lessons)]
 
-
     for item in data:
         start_hour = item["beginLesuur"]
         end_hour = item["eindLesuur"]
@@ -257,8 +258,9 @@ def schedule_main(btoken, api_url):
                 # Sometimes item["additionalObjects"]["vak"]["afkorting"] will be empty, so it checks if any subject title is in the description of the lesson
                 lesson_info = item["titel"]
                 subject_abbr = ""
-                subjects_in_schedule = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL', 'SCHK',
-                     'WISB']  # Change to all the subjects you want in your schedule
+                subjects_in_schedule = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL',
+                                        'SCHK',
+                                        'WISB']  # Change to all the subjects you want in your schedule
                 for afk in subjects_in_schedule:
                     if afk in lesson_info:
                         subject_abbr = afk
