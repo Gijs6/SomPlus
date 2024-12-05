@@ -7,7 +7,13 @@ The Somtoday API auth is a mess. I use [Somtoday SSO tool](https://github.com/m-
 
 Things you need to adjust for the script to work: (these things work very differently for all schools)
 * `lln_id` in **grades_main** (not your "leerlingnummer" but the id you get via /rest/v1/account/)
-* `types_to_remove` in **grades_main** (you can see all the types in the raw data from .../rest/v1/resultaten/huidigVoorLeerling/..., usually only "toetskolom" is needed if you're working with grades from tests)
+* `types_to_remove` in **grades_main**
+
+   You can see all the types in the raw data from .../rest/v1/resultaten/huidigVoorLeerling/...
+  
+   Usually only `toetskolom` is needed if you're working with grades from tests. If you're working with grades from the periods/reports, you need either `PeriodeGemiddeldeKolom` or `RapportGemiddeldeKolom`. On most schools one of them is rounded and the other is not (I think), but it differs, so just look wich one does the thing you want :D
+
+
 * `subjects_to_remove` in **grades_main** 
 * `maximum_amount_lessons` in **schedule_notification_generator** AND **schedule_main** AND **saveStandardSchedule.py**
 * `subjects_in_schedule` in **schedule_main**
