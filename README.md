@@ -9,7 +9,7 @@ The schedule section only uses items with a defined starting hour, so any items 
 
 Things you need to adjust for the script to work: (these things work very differently for all schools)
 * `lln_id` in **grades_main** (not your "leerlingnummer" but the id you get via /rest/v1/account/)
-* `types_to_remove` in **grades_main**
+* The process of removing columntypes in **grades_main**
 
    You can see all the types in the raw data from .../rest/v1/resultaten/huidigVoorLeerling/...
   
