@@ -5,7 +5,7 @@ Relies on the files refreshtoken.txt, gradelist.pkl, schedule.pkl, week_number.t
 
 The Somtoday API auth is a mess. I use [Somtoday SSO tool](https://github.com/m-caeliusrufus/Somtoday-SSO-tool) to get the refreshtoken, and put that in the refreshtoken.txt. You can also use [SomtodaySSOLogin](https://github.com/Underlyingglitch/SomtodaySSOLogin) for this.
 
-The schedule section only uses items with a defined starting hour, so any items that don't align with standard lesson times are not used. You could save the schedule data gathered from Som, but that would cause the notification generator to break.
+The schedule section only uses items with a defined starting hour, so any items that don't align with standard lesson times are not used. You could just save the times from the data directly, but that would cause the notification generator to break.
 
 Things you need to adjust for the script to work: (these things work very differently for all schools)
 * `lln_id` in **grades_main** (not your "leerlingnummer" but the id you get via /rest/v1/account/)
