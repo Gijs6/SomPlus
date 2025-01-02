@@ -120,9 +120,6 @@ def update_grade_list_sheet(api_url, btoken, gc):
         end_row = first_cell_row_number + (num_subjects - 1)
         ranges[period] = f"{column_letter}{start_row}:{column_letter}{end_row}"
 
-    # DEBUG
-    print(ranges)
-
     for period, range_name in ranges.items():
         worksheet.update(range_name=range_name, values=period_form[period])
 
