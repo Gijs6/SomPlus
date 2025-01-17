@@ -139,7 +139,7 @@ def schedule_notification_generator(old_schedule, new_schedule):
         set_new = set(schedule_this_day_new_only_lessons)
         lessons_canceled = list(set_old - set_new)
         for subject in lessons_canceled:
-            changes_this_day.append(f"{week_day_names[day]}: Uitval {subject}! ")
+            changes_this_day.append(f"{week_day_names[day]}: Cancellation {subject}! ")
 
         for lesson in range(maximum_amount_lessons):
             time_info = f"{week_day_names[day]} {lesson + 1}e"
@@ -185,11 +185,8 @@ def schedule_notification_generator(old_schedule, new_schedule):
 
     changes_notification = ""
 
-    cancelled_items = [item for item in changes if "Uitval" in item]
-    non_cancelled_items = [item for item in changes if "Uitval" not in item]
-
     # This is to make sure the cancelled items are at the beginning of the notification
-    changes = cancelled_items + non_cancelled_items
+    changes = [item for item in changes if "Cancellation" in item] + [item for item in changes if "Citval" not in item] # Cancelled items and then other items
 
     for item in changes:
         if changes_notification != "":
@@ -207,9 +204,8 @@ def schedule_main(btoken, api_url):
     days_since_monday = weekday
     if weekday == 0:  # I have no idea why I put this here, but I feel everything will break if I remove it
         days_since_monday = 0
-    if weekday >= 5 or (
-            weekday == 4 and current_hour >= 16):  # Every friday at 16:00, it starts working with the schedule for the next week
-        days_since_monday -= 7
+    if weekday >= 5 or (weekday == 4 and current_hour >= 16):  # Every friday at 16:00, it starts working with the schedule for the next week
+        days_since_monday -= 7 
     monday = today - timedelta(days=days_since_monday)
     saturday = monday + timedelta(days=5)
     monday_format = monday.strftime("%Y-%m-%d")
@@ -254,9 +250,7 @@ def schedule_main(btoken, api_url):
                 # Sometimes item["additionalObjects"]["vak"]["afkorting"] will be empty, so it checks if any subject title is in the description of the lesson
                 lesson_info = item["titel"]
                 subject_abbr = ""
-                subjects_in_schedule = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL',
-                                        'SCHK',
-                                        'WISB']  # Change to all the subjects you want in your schedule
+                subjects_in_schedule = ['BIOL', 'CKV', 'ENTL', 'FATL', 'LO', 'MAAT', 'MEN', 'NAT', 'NLT', 'NETL', 'SCHK', 'WISB']  # Change to all the subjects you want in your schedule
                 for afk in subjects_in_schedule:
                     if afk in lesson_info:
                         subject_abbr = afk
@@ -295,22 +289,11 @@ def schedule_main(btoken, api_url):
 
         # Code for sending notification
 
-
-try:
+def main():
     btoken, api_url = refresh_tokens()
-
-    try:
-        grades_main(btoken, api_url)
-    except Exception as e:
-        print("Error with grades", e)
-
-    try:
-        schedule_main(btoken, api_url)
-    except Exception as e:
-        print("Error with schedule", e)
-
-
-except Exception as e:
-    print("Error with token", e)
-
-print("Completed :D")
+    grades_main(btoken, api_url)
+    schedule_main(btoken, api_url)
+    
+if __name__ == "__main__":
+    main()
+    print("Completed!")
