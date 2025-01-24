@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from collections import Counter
 import pickle
 import pytz
 import requests
+
 
 
 def refresh_tokens():
@@ -113,88 +115,146 @@ def grades_main(btoken, api_url):
             "https://discord.com/api/webhooks/...", json=data)
 
 
-def schedule_notification_generator(old_schedule, new_schedule):
+def schedule_notification_generator(oldScheduleData, newScheduleData):
     changes = []
-
-    week_day_names = {
-        0: "MA",
-        1: "DI",
-        2: "WO",
-        3: "DO",
-        4: "VR",
-        5: "ZA",
-        6: "ZO"
+    schedulesChangedDays = []
+    weekdays = {
+        0: "MO",
+        1: "TU",
+        2: "WE",
+        3: "TH",
+        4: "FR",
+        5: "SA",
+        6: "SU"
     }
+    for day in range(5):
+        dayChanges = []
+        dayScheduleOldLessonsOnly = []
+        dayScheduleNewLessonsOnly = []
+        for hour in range(9):
+            dayScheduleOldLessonsOnly.append(oldScheduleData[hour][day].split(" - ")[0])
+            dayScheduleNewLessonsOnly.append(newScheduleData[hour][day].split(" - ")[0])
+        counter1 = Counter(dayScheduleOldLessonsOnly)
+        counter2 = Counter(dayScheduleNewLessonsOnly)
 
-    maximum_amount_lessons = 9  # Change to adjust the number of maximum lessons on a day
+        totalHoursCanceled = 0
 
-    for day in range(5):  # Change to adjust the number of days
-        changes_this_day = []
-        schedule_this_day_old_only_lessons = []
-        schedule_this_day_new_only_lessons = []
-        for hour in range(maximum_amount_lessons):
-            schedule_this_day_old_only_lessons.append(old_schedule[hour][day].split(" - ")[0])
-            schedule_this_day_new_only_lessons.append(new_schedule[hour][day].split(" - ")[0])
-        set_old = set(schedule_this_day_old_only_lessons)
-        set_new = set(schedule_this_day_new_only_lessons)
-        lessons_canceled = list(set_old - set_new)
-        for subject in lessons_canceled:
-            changes_this_day.append(f"{week_day_names[day]}: Cancellation {subject}! ")
+        allLessonsOccurringThatDay = set(dayScheduleOldLessonsOnly).union(set(dayScheduleNewLessonsOnly))
 
-        for lesson in range(maximum_amount_lessons):
-            time_info = f"{week_day_names[day]} {lesson + 1}e"
-            old_lesson_info = old_schedule[lesson][day]
-            new_lesson_info = new_schedule[lesson][day]
+        for item in allLessonsOccurringThatDay:
+            if item.strip() == "":
+                continue
+
+            oldCount = counter1[item]
+            newCount = counter2[item]
+
+            canceledHours = oldCount - newCount
+
+            totalHoursCanceled += abs(canceledHours)
+
+            if canceledHours == 1:
+                if oldCount == 1:
+                    # 1 hour in the old schedule that has been canceled
+                    dayChanges.append(f"{weekdays[day]}: Canceled {item}")
+                if oldCount > 1:
+                    # A block hour (or at least multiple lessons) in the old schedule AND only 1 has been canceled
+                    dayChanges.append(f"{weekdays[day]}: PARTIAL cancellation {item}")
+            if canceledHours > 1:
+                if newCount == 0:
+                    # Multiple hours in the old schedule, and all of them are canceled
+                    dayChanges.append(f"{weekdays[day]}: COMPLETE cancellation {item}")
+                else:
+                    # If multiple but NOT ALL hours are canceled
+                    # Practically never happens
+                    dayChanges.append(f"{weekdays[day]}: {canceledHours} TIMES cancellation {item}")
+
+            if canceledHours < 0:
+                # Anti-cancellation
+                if canceledHours == -1:
+                    dayChanges.append(f"{weekdays[day]}: ANTI-CANCELLATION!!! {item}")
+                    pass
+                if canceledHours < -1:
+                    dayChanges.append(f"{weekdays[day]}: {abs(canceledHours)} HOURS ANTI-CANCELLATION???!!! {item}")
+                    pass
+
+
+        for lesson in range(9):
+            timeStr = f"{weekdays[day]} {lesson + 1}th"
+            oldCell = oldScheduleData[lesson][day]
+            newCell = newScheduleData[lesson][day]
 
             try:
-                old_subject, old_teacher, old_classroom = old_lesson_info.split(" - ")
+                oldSubject, oldTeacher, oldRoom = oldCell.split(" - ")
             except ValueError:
-                old_subject = "Nothing"
-                old_teacher = "Nothing"
-                old_classroom = "Nothing"
-            if old_subject.strip() == "":
-                old_subject = "Nothing"
-            if old_teacher.strip() == "":
-                old_teacher = "Nothing"
-            if old_classroom.strip() == "":
-                old_classroom = "Nothing"
+                oldSubject = "Empty"
+                oldTeacher = "Empty"
+                oldRoom = "Empty"
+            if oldSubject.strip() == "":
+                oldSubject = "Empty"
+            if oldTeacher.strip() == "":
+                oldTeacher = "Empty"
+            if oldRoom.strip() == "":
+                oldRoom = "Empty"
 
             try:
-                new_subject, new_teacher, new_classroom = new_lesson_info.split(" - ")
+                newSubject, newTeacher, newRoom = newCell.split(" - ")
             except ValueError:
-                new_subject = "Nothing"
-                new_teacher = "Nothing"
-                new_classroom = "Nothing"
-            if new_subject.strip() == "":
-                new_subject = "Nothing"
-            if new_teacher.strip() == "":
-                new_teacher = "Nothing"
-            if new_classroom.strip() == "":
-                new_classroom = "Nothing"
+                newSubject = "Empty"
+                newTeacher = "Empty"
+                newRoom = "Empty"
+            if newSubject.strip() == "":
+                newSubject = "Empty"
+            if newTeacher.strip() == "":
+                newTeacher = "Empty"
+            if newRoom.strip() == "":
+                newRoom = "Empty"
 
-            if old_subject != new_subject:
-                changes_this_day.append(f"{time_info}: {old_subject} -> {new_subject}")
+            if oldSubject != newSubject:
+                dayChanges.append(f"{timeStr}: {oldSubject} -> {newSubject}")
             else:
-                if old_teacher != new_teacher:
-                    changes_this_day.append(f"{time_info}: {old_teacher} -> {new_teacher}")
-                if old_classroom != new_classroom:
-                    changes_this_day.append(f"{time_info}: {old_classroom} -> {new_classroom}")
+                if oldTeacher != newTeacher:
+                    dayChanges.append(f"{timeStr}: {oldTeacher} -> {newTeacher}")
+                if oldRoom != newRoom:
+                    dayChanges.append(f"{timeStr}: {oldRoom} -> {newRoom}")
 
-        for item in changes_this_day:
+        if totalHoursCanceled != 0:
+            changedScheduleDay = f"SCHEDULE {weekdays[day]}: "
+            i = 1
+            for item in dayScheduleNewLessonsOnly:
+                if item == "":
+                    item = "Empty"
+
+                if changedScheduleDay == f"SCHEDULE {weekdays[day]}: ":
+                    changedScheduleDay += str(i) + "th = " + item
+                else:
+                    changedScheduleDay += " | " + str(i) + "th = " + item
+                i += 1
+            schedulesChangedDays.append(changedScheduleDay)
+
+        for item in dayChanges:
             changes.append(item)
 
-    changes_notification = ""
+    changesStr = ""
 
-    # This is to make sure the cancelled items are at the beginning of the notification
-    changes = [item for item in changes if "Cancellation" in item] + [item for item in changes if "Citval" not in item] # Cancelled items and then other items
+    canceledItems = [item for item in changes if "cancellation" in item.lower()]
+    nonCanceledItems = [item for item in changes if "cancellation" not in item.lower()]
+
+    changes = canceledItems + nonCanceledItems
 
     for item in changes:
-        if changes_notification != "":
-            changes_notification += " | " + item
+        if changesStr != "":
+            changesStr += " | " + item
         else:
-            changes_notification += item
+            changesStr += item
 
-    return changes_notification
+    scheduleStr = ""
+    for item in schedulesChangedDays:
+        if scheduleStr != "":
+            scheduleStr += " // " + item
+        else:
+            scheduleStr += item
+
+    return changesStr, scheduleStr
 
 
 def schedule_main(btoken, api_url):
