@@ -27,7 +27,7 @@ To make the script work, you will need to adjust the following things. These wil
 6. **`btoken` in `saveStandardSchedule.py`**  
    You only need to save a new standard schedule if you have a new one, so you can just generate a extra token when you need to run this script
 
-## Instructions for Getting the Auth JSON for the Sheet Updater
+## Sheet Updater
 
 The Sheet Updater is quite inefficient and very specific, but you may find it helpful.
 
