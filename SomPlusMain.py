@@ -155,9 +155,9 @@ def schedule_notification_generator(oldScheduleData, newScheduleData):
             if canceledHours == 1:
                 if oldCount == 1:
                     # 1 hour in the old schedule that has been canceled
-                    dayChanges.append(f"{weekdays[day]}: Canceled {item}")
+                    dayChanges.append(f"{weekdays[day]}: Cancellation {item}")
                 if oldCount > 1:
-                    # A block hour (or at least multiple lessons) in the old schedule AND only 1 has been canceled
+                    # A mltiple lessons in the old schedule AND only 1 has been canceled
                     dayChanges.append(f"{weekdays[day]}: PARTIAL cancellation {item}")
             if canceledHours > 1:
                 if newCount == 0:
@@ -165,11 +165,11 @@ def schedule_notification_generator(oldScheduleData, newScheduleData):
                     dayChanges.append(f"{weekdays[day]}: COMPLETE cancellation {item}")
                 else:
                     # If multiple but NOT ALL hours are canceled
-                    # Practically never happens
+                    # Practically never happens (could only happen if you have 3 or more lessons of 1 subject on 1 day and multiple but not all of them are cancelled)
                     dayChanges.append(f"{weekdays[day]}: {canceledHours} TIMES cancellation {item}")
 
             if canceledHours < 0:
-                # Anti-cancellation
+                # Anti-cancellation, so hours put back or added
                 if canceledHours == -1:
                     dayChanges.append(f"{weekdays[day]}: ANTI-CANCELLATION!!! {item}")
                     pass
