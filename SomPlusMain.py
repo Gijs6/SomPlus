@@ -74,25 +74,42 @@ def grades_main(btoken, api_url):
     new_grade_list = []
 
     for grade in data:
-        try:
-            result = grade["geldendResultaat"]
-        except KeyError:
-            # For grades with a letter as result
+        if grade["resultaatLabelAfkorting"]:
             result = grade["resultaatLabelAfkorting"]
-        input_datetime = datetime.strptime(grade["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime(
-            "%d/%m/%Y %H:%M:%S")
+        else:
+            result = grade["resultaat"]
+            real_result = grade["geldendResultaat"]
+
+            if result == real_result:
+                # Niet herkansd of de herkansing is niet het cijfer dat telt
+                input_datetime = datetime.strptime(grade["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M:%S")
+                input_datetime_format = datetime.strptime(grade["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M")
+            else:
+                # Een herkansing is het cijfer dat telt
+                result = real_result
+                input_datetime = datetime.strptime(grade["herkansing"]["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M:%S")
+                input_datetime_format = datetime.strptime(grade["herkansing"]["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M")
+
         subject_abbr = grade["vak"]["afkorting"]
         subject_full = grade["vak"]["naam"]
         title = grade["omschrijving"]
         weighting = grade["weging"]
+        try:
+            se_weighting = grade["examenWeging"]
+        except KeyError:
+            se_weighting = 0
+        
         new_grade_list.append({
             "result": result,
             "inputdatetime": input_datetime,
             "subjectabbr": subject_abbr,
             "subject_full": subject_full,
             "title": title,
-            "weighting": weighting
+            "weighting": weighting,
+            "SEweighting": se_weighting
         })
+
+
 
     with open("gradelist.pkl", "rb") as file:
         old_grade_list = pickle.load(file)
