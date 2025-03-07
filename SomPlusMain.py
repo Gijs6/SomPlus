@@ -69,12 +69,11 @@ def grades_main(btoken, api_url):
     for item in remove_items:
         data.remove(item)
 
-    data = sorted(data, key=lambda x: datetime.strptime(x["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z"), reverse=True)
-
+    
     new_grade_list = []
 
     for grade in data:
-        if grade["resultaatLabelAfkorting"]:
+        if grade.get("resultaatLabelAfkorting"):
             result = grade["resultaatLabelAfkorting"]
         else:
             result = grade["resultaat"]
@@ -108,6 +107,9 @@ def grades_main(btoken, api_url):
             "weighting": weighting,
             "SEweighting": se_weighting
         })
+
+    new_grade_list = sorted(new_grade_list, key=lambda x: datetime.strptime(x["inputdatetime"], "%d/%m/%Y %H:%M:%S"), reverse=True)
+
 
 
 
