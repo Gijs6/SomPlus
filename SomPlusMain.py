@@ -13,7 +13,7 @@ def refresh_tokens():
     body = {
         "grant_type": "refresh_token",
         "refresh_token": rtoken1,
-        "client_id": "D50E0C06-32D1-4B41-A137-A9A850C892C2"
+        "client_id": "somtoday-leerling-native"
     }
     response = requests.post(url, data=body)
 
