@@ -75,6 +75,8 @@ def grades_main(btoken, api_url):
     for grade in data:
         if grade.get("resultaatLabelAfkorting"):
             result = grade["resultaatLabelAfkorting"]
+            input_datetime = datetime.strptime(grade["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M:%S")
+            input_datetime_format = datetime.strptime(grade["datumInvoer"], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%d/%m/%Y %H:%M")
         else:
             result = grade["resultaat"]
             real_result = grade["geldendResultaat"]
