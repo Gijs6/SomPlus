@@ -1,0 +1,15 @@
+#!/bin/bash
+
+run() {
+  python run.py
+}
+
+format() {
+  ruff format .
+  prettier --write "**/*.{json,md}"
+}
+
+setup() {
+  pip install -r requirements.txt
+  echo "Setup complete. Configure your credentials in config/users/*.json"
+}
