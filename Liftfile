@@ -1,0 +1,4 @@
+name: somplus
+image: gijs6/somplus
+registry: ghcr.io
+host: dec
