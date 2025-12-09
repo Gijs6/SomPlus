@@ -4,6 +4,10 @@ run() {
   python run.py
 }
 
+schedule() {
+  python scheduler.py
+}
+
 format() {
   ruff format .
   prettier --write "**/*.{json,md}"
@@ -11,5 +15,9 @@ format() {
 
 setup() {
   pip install -r requirements.txt
-  echo "Setup complete. Configure your credentials in config/users/*.json"
+  echo "Setup complete, configure your credentials in config/users/*.json"
+}
+
+deploy() {
+  lift deploy
 }
