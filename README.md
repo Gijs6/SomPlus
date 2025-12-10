@@ -161,9 +161,9 @@ Start the Docker container:
 docker run -d \
   --name somplus \
   --restart unless-stopped \
-  -v /srv/somplus/config:/app/config:ro \
-  -v /srv/somplus/data:/app/data \
-  -v /srv/somplus/logs:/app/logs \
+  -v /.../somplus/config:/app/config:ro \
+  -v /.../somplus/data:/app/data \
+  -v /.../somplus/logs:/app/logs \
   -e TZ=Europe/Amsterdam \
   ghcr.io/gijs6/somplus:latest
 ```
@@ -349,7 +349,7 @@ Array of time windows that control how often to check Somtoday. Each entry has:
 Want to run this locally without Docker:
 
 ```bash
-git clone https://github.com/gijs6/somplus.git
+git clone https://github.com/Gijs6/SomPlus.git
 cd somplus
 python -m venv .venv
 source .venv/bin/activate
