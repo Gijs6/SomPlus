@@ -10,7 +10,9 @@ class ScheduleMonitor(BaseMonitor):
 
     def run(self, access_token, notifiers):
         if not self.is_enabled():
-            logger.console_info(f"{self.__class__.__name__} is disabled, skipping", indent=4)
+            logger.console_info(
+                f"{self.__class__.__name__} is disabled, skipping", indent=4
+            )
             return
 
         logger.console_print("Fetching current week data...", indent=4)
@@ -44,7 +46,9 @@ class ScheduleMonitor(BaseMonitor):
 
         if changes:
             change_count = len(changes) if isinstance(changes, list) else 1
-            logger.console_print(f"Found {change_count} change(s), saving data...", indent=4)
+            logger.console_print(
+                f"Found {change_count} change(s), saving data...", indent=4
+            )
             self.save_data(processed_data)
             logger.console_print("Sending notifications...", indent=4)
             try:
@@ -164,11 +168,16 @@ class ScheduleMonitor(BaseMonitor):
                         pass
 
         if old_week != current_week:
-            logger.console_info(f"Week changed from {old_week} to {current_week}", indent=4)
+            logger.console_info(
+                f"Week changed from {old_week} to {current_week}", indent=4
+            )
             logger.console_print("Generating standard schedule on-the-fly...", indent=4)
             standard_schedule = self.find_best_standard_schedule(access_token)
             if not standard_schedule:
-                logger.console_warning("Could not generate standard schedule, using empty baseline", indent=4)
+                logger.console_warning(
+                    "Could not generate standard schedule, using empty baseline",
+                    indent=4,
+                )
                 old_lessons = []
             else:
                 old_lessons = standard_schedule
@@ -373,7 +382,7 @@ class ScheduleMonitor(BaseMonitor):
         weeks_to_check = config.get_standard_schedule_weeks_ahead(self.user_config)
         logger.console_print(
             f"Searching for best standard schedule (checking {weeks_to_check} weeks ahead)...",
-            indent=4
+            indent=4,
         )
 
         now = datetime.now()
@@ -399,7 +408,7 @@ class ScheduleMonitor(BaseMonitor):
 
                 logger.console_print(
                     f"Week {week_number} ({monday_str}): {lesson_count} lessons",
-                    indent=6
+                    indent=6,
                 )
 
                 if lesson_count > max_lesson_count:
@@ -408,13 +417,15 @@ class ScheduleMonitor(BaseMonitor):
                     best_week_number = week_number
 
             except Exception as e:
-                logger.console_error(f"Week {week_number}: Failed to fetch ({e})", indent=6)
+                logger.console_error(
+                    f"Week {week_number}: Failed to fetch ({e})", indent=6
+                )
                 continue
 
         if best_week:
             logger.console_success(
                 f"Best standard schedule found with {max_lesson_count} lessons (week {best_week_number})",
-                indent=4
+                indent=4,
             )
             return best_week
 

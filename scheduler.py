@@ -28,7 +28,10 @@ def get_current_time_window(sleep_schedule):
         end_minutes = end_hour * 60 + end_minute
 
         if start_minutes > end_minutes:
-            if current_time_minutes >= start_minutes or current_time_minutes < end_minutes:
+            if (
+                current_time_minutes >= start_minutes
+                or current_time_minutes < end_minutes
+            ):
                 return window["sleep"]
         else:
             if start_minutes <= current_time_minutes < end_minutes:
@@ -73,7 +76,9 @@ def main():
     for i, window in enumerate(sleep_schedule, 1):
         start = f"{window['start'][0]:02d}:{window['start'][1]:02d}"
         end = f"{window['end'][0]:02d}:{window['end'][1]:02d}"
-        logger.console_print(f"  {i}. {start} - {end}: check every {window['sleep']}s", indent=2)
+        logger.console_print(
+            f"  {i}. {start} - {end}: check every {window['sleep']}s", indent=2
+        )
 
     logger.console_print("\n" + "=" * 60)
     logger.console_success("Scheduler started - running continuously")

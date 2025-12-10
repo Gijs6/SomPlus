@@ -46,7 +46,11 @@ def get_grades_enabled(user_config):
 
 
 def get_grades_filters(user_config):
-    return get(user_config, "monitoring.grades.filters", {"exclude_subjects": [], "exclude_types": []})
+    return get(
+        user_config,
+        "monitoring.grades.filters",
+        {"exclude_subjects": [], "exclude_types": []},
+    )
 
 
 def get_discord_grades_enabled(user_config):

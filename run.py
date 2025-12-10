@@ -89,7 +89,9 @@ def check_hourly_errors(user_configs, notifiers):
     logger.console_info(f"Processing hourly error notifications ({hour_key})")
     logger.console_print(f"{'=' * 60}")
     total_errors = sum(len(error_list) for error_list in errors.values())
-    logger.console_print(f"Found {total_errors} error(s) for {len(errors)} user(s)", indent=2)
+    logger.console_print(
+        f"Found {total_errors} error(s) for {len(errors)} user(s)", indent=2
+    )
 
     for username, error_list in errors.items():
         if username not in user_configs:
@@ -102,7 +104,9 @@ def check_hourly_errors(user_configs, notifiers):
                     username, user_configs[username], {username: error_list}
                 )
             except Exception as e:
-                logger.console_error(f"Notification failed for {username}: {e}", indent=2)
+                logger.console_error(
+                    f"Notification failed for {username}: {e}", indent=2
+                )
 
     logger.clear_hour_errors(hour_key)
     logger.console_success("Error notifications sent and cleared", indent=2)
@@ -132,7 +136,9 @@ def main():
 
     try:
         logger.init_logging(app_config["paths"]["logs_dir"])
-        logger.console_success(f"Initialized logging: {app_config['paths']['logs_dir']}")
+        logger.console_success(
+            f"Initialized logging: {app_config['paths']['logs_dir']}"
+        )
     except Exception as e:
         logger.console_error(f"Failed to initialize logging: {e}")
         return

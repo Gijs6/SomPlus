@@ -13,7 +13,9 @@ class BaseMonitor:
 
     def run(self, access_token, notifiers):
         if not self.is_enabled():
-            logger.console_info(f"{self.__class__.__name__} disabled, skipping", indent=4)
+            logger.console_info(
+                f"{self.__class__.__name__} disabled, skipping", indent=4
+            )
             return
 
         logger.console_print("Fetching data from API...", indent=4)
@@ -47,7 +49,9 @@ class BaseMonitor:
 
         if changes:
             change_count = len(changes) if isinstance(changes, list) else 1
-            logger.console_print(f"Found {change_count} change(s), saving data...", indent=4)
+            logger.console_print(
+                f"Found {change_count} change(s), saving data...", indent=4
+            )
             self.save_data(processed_data)
             logger.console_print("Sending notifications...", indent=4)
             try:
