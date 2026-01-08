@@ -113,7 +113,7 @@ class DiscordNotifier:
                 "description": f"**{subject}** - {test_name}",
                 "color": color,
                 "fields": fields,
-                "footer": {"text": "SomPlus grade monitor"},
+                "footer": {"text": "SomPlus"},
             }
 
             payload = {
@@ -242,7 +242,7 @@ class DiscordNotifier:
                 "description": f"**{subject}** - {test_name}",
                 "color": color,
                 "fields": fields,
-                "footer": {"text": "SomPlus grade monitor"},
+                "footer": {"text": "SomPlus"},
             }
 
         elif change_type == "CHANGED":
@@ -409,7 +409,7 @@ class DiscordNotifier:
                 "description": f"**{subject}** - {test_name}",
                 "color": color,
                 "fields": fields,
-                "footer": {"text": "SomPlus grade monitor"},
+                "footer": {"text": "SomPlus"},
             }
 
         elif change_type == "REMOVED":
@@ -469,7 +469,7 @@ class DiscordNotifier:
                 "description": f"**{subject}** - {test_name}",
                 "color": color,
                 "fields": fields,
-                "footer": {"text": "SomPlus grade monitor"},
+                "footer": {"text": "SomPlus"},
             }
 
         else:
@@ -503,10 +503,10 @@ class DiscordNotifier:
 
         embeds = [
             {
-                "title": "Rooster wijzigingen",
+                "title": "Roosterwijzigingen",
                 "description": changes_description,
                 "color": config.get_discord_schedule_color_changes(user_config),
-                "footer": {"text": "SomPlus schedule monitor"},
+                "footer": {"text": "SomPlus"},
             }
         ]
 
