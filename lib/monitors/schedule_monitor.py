@@ -269,7 +269,9 @@ class ScheduleMonitor(BaseMonitor):
                 subject = info["subject"]
                 if subject:
                     hours = self.get_lesson_hours(lesson)
-                    old_subject_hours[subject] = old_subject_hours.get(subject, 0) + hours
+                    old_subject_hours[subject] = (
+                        old_subject_hours.get(subject, 0) + hours
+                    )
 
             new_subject_hours = {}
             for lesson in new_day:
@@ -277,7 +279,9 @@ class ScheduleMonitor(BaseMonitor):
                 subject = info["subject"]
                 if subject:
                     hours = self.get_lesson_hours(lesson)
-                    new_subject_hours[subject] = new_subject_hours.get(subject, 0) + hours
+                    new_subject_hours[subject] = (
+                        new_subject_hours.get(subject, 0) + hours
+                    )
 
             all_subjects = set(old_subject_hours.keys()) | set(new_subject_hours.keys())
             for subject in all_subjects:
@@ -495,5 +499,9 @@ class ScheduleMonitor(BaseMonitor):
 
         for notifier in notifiers:
             notifier.send_schedule_notification(
-                self.username, self.user_config, changes, current_schedule_display, rolled_over
+                self.username,
+                self.user_config,
+                changes,
+                current_schedule_display,
+                rolled_over,
             )
