@@ -99,15 +99,6 @@ class DiscordNotifier:
                 },
             ]
 
-            if grade.get("volgnummer"):
-                fields.append(
-                    {
-                        "name": "Volgnummer",
-                        "value": str(grade.get("volgnummer")),
-                        "inline": True,
-                    }
-                )
-
             embed = {
                 "title": f"Nieuwe herkansing voor {display_name}",
                 "description": f"**{subject}** - {test_name}",
@@ -217,15 +208,6 @@ class DiscordNotifier:
             if flags:
                 fields.append(
                     {"name": "Status", "value": "\n".join(flags), "inline": False}
-                )
-
-            if grade.get("volgnummer"):
-                fields.append(
-                    {
-                        "name": "Volgnummer",
-                        "value": str(grade.get("volgnummer")),
-                        "inline": True,
-                    }
                 )
 
             if grade.get("datumInvoer"):
@@ -485,7 +467,7 @@ class DiscordNotifier:
         self.send_webhook(webhook_url, payload)
 
     def send_schedule_notification(
-        self, username, user_config, changes, current_schedule
+        self, username, user_config, changes, current_schedule, rolled_over=False
     ):
         if not config.get_discord_schedule_enabled(user_config):
             return
@@ -511,22 +493,34 @@ class DiscordNotifier:
         ]
 
         today = datetime.now().weekday()
-        if today in lessons_by_day:
-            today_schedule = self.format_day_schedule(lessons_by_day[today])
+
+        if rolled_over:
             embeds.append(
                 {
-                    "title": "vandaag",
-                    "description": today_schedule,
+                    "title": "Volgende week",
+                    "description": "Dit zijn wijzigingen voor volgende week.",
                     "color": config.get_discord_schedule_color_current(user_config),
                     "footer": {"text": "SomPlus"},
                 }
             )
+            affected_days = set(c["day"] for c in changes)
+        else:
+            if today in lessons_by_day:
+                today_schedule = self.format_day_schedule(lessons_by_day[today])
+                embeds.append(
+                    {
+                        "title": "Vandaag",
+                        "description": today_schedule,
+                        "color": config.get_discord_schedule_color_current(user_config),
+                        "footer": {"text": "SomPlus"},
+                    }
+                )
+            affected_days = set(c["day"] for c in changes if c["day"] > today)
 
-        affected_days = set(c["day"] for c in changes if c["day"] > today)
         if affected_days:
-            day_names = ["ma", "di", "wo", "do", "vr"]
+            day_names = ["Ma", "Di", "Wo", "Do", "Vr"]
             for day in sorted(affected_days):
-                if day in lessons_by_day and day != today:
+                if day in lessons_by_day and (rolled_over or day != today):
                     day_schedule = self.format_day_schedule(lessons_by_day[day])
                     embeds.append(
                         {
@@ -638,13 +632,6 @@ class DiscordNotifier:
         lines = []
         for lesson in lessons:
             if lesson["subject"]:
-                time_range = (
-                    f"{lesson.get('start_time', '?')} - {lesson.get('end_time', '?')}"
-                )
-                period = lesson["period"]
-                lines.append(
-                    f"**{period}e uur** ({time_range})\n"
-                    f"{lesson['subject']} - {lesson['teacher']} - {lesson['location']}"
-                )
+                lines.append(f"{lesson['period']}e: {lesson['subject']}")
 
-        return "\n\n".join(lines) if lines else "Geen lessen"
+        return "\n".join(lines) if lines else "Geen lessen"

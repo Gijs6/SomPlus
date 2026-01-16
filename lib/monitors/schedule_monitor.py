@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from collections import Counter
 from lib.monitors.base_monitor import BaseMonitor
 from lib.utils import config, logger
 
@@ -17,7 +16,7 @@ class ScheduleMonitor(BaseMonitor):
 
         logger.console_print("Fetching current week data...", indent=4)
         try:
-            raw_data = self.fetch_data(access_token)
+            raw_data, rolled_over = self.fetch_data(access_token)
         except Exception as e:
             logger.console_error(f"Failed to fetch data: {e}", indent=4)
             return
@@ -52,7 +51,7 @@ class ScheduleMonitor(BaseMonitor):
             self.save_data(processed_data)
             logger.console_print("Sending notifications...", indent=4)
             try:
-                self.notify_changes(changes, notifiers)
+                self.notify_changes(changes, notifiers, rolled_over)
                 logger.console_success("Saved data and sent notifications", indent=4)
             except Exception as e:
                 logger.console_error(f"Failed to send notifications: {e}", indent=4)
@@ -61,9 +60,9 @@ class ScheduleMonitor(BaseMonitor):
             self.save_data(processed_data)
 
     def fetch_data(self, access_token):
-        monday, saturday, week_number = self.get_week_dates()
+        monday, saturday, week_number, rolled_over = self.get_week_dates()
         raw_schedule = self.api.fetch_schedule(access_token, monday, saturday)
-        return raw_schedule
+        return raw_schedule, rolled_over
 
     def clean_nested_object(self, obj):
         if not isinstance(obj, dict):
@@ -125,10 +124,13 @@ class ScheduleMonitor(BaseMonitor):
         rollover_day = config.get_weekend_rollover_day(self.user_config)
         schedule_end_day = config.get_schedule_fetch_end_day(self.user_config)
 
+        rolled_over = False
         if now.weekday() == rollover_day and now.hour >= rollover_hour:
+            rolled_over = True
             days_to_add = 7 - rollover_day
             now = now + timedelta(days=days_to_add)
         elif now.weekday() > rollover_day:
+            rolled_over = True
             days_until_monday = 7 - now.weekday()
             now = now + timedelta(days=days_until_monday)
 
@@ -140,7 +142,7 @@ class ScheduleMonitor(BaseMonitor):
         monday_str = monday.strftime("%Y-%m-%d")
         end_day_str = end_day.strftime("%Y-%m-%d")
 
-        return monday_str, end_day_str, str(week_number)
+        return monday_str, end_day_str, str(week_number), rolled_over
 
     def load_cached_data(self):
         path = self.get_user_data_path("schedule.json")
@@ -151,7 +153,7 @@ class ScheduleMonitor(BaseMonitor):
         self.save_json_file(path, data)
 
     def compare_data(self, old_data, new_data, access_token):
-        monday, saturday, current_week = self.get_week_dates()
+        monday, saturday, current_week, _ = self.get_week_dates()
 
         old_week = None
         if old_data:
@@ -188,6 +190,15 @@ class ScheduleMonitor(BaseMonitor):
         changes = self.compare_schedules(old_lessons, new_lessons)
 
         return changes
+
+    def get_lesson_hours(self, entry):
+        begin = entry.get("beginLesuur")
+        end = entry.get("eindLesuur")
+
+        if begin is None or end is None:
+            return 1
+
+        return (end - begin) + 1
 
     def extract_lesson_info(self, entry):
         vakken = entry.get("vakken", [])
@@ -252,30 +263,31 @@ class ScheduleMonitor(BaseMonitor):
                 l for l in new_lessons if self.extract_lesson_info(l)["day"] == day
             ]
 
-            old_subjects = Counter(
-                [
-                    self.extract_lesson_info(l)["subject"]
-                    for l in old_day
-                    if self.extract_lesson_info(l)["subject"]
-                ]
-            )
-            new_subjects = Counter(
-                [
-                    self.extract_lesson_info(l)["subject"]
-                    for l in new_day
-                    if self.extract_lesson_info(l)["subject"]
-                ]
-            )
+            old_subject_hours = {}
+            for lesson in old_day:
+                info = self.extract_lesson_info(lesson)
+                subject = info["subject"]
+                if subject:
+                    hours = self.get_lesson_hours(lesson)
+                    old_subject_hours[subject] = old_subject_hours.get(subject, 0) + hours
 
-            all_subjects = set(old_subjects.keys()) | set(new_subjects.keys())
+            new_subject_hours = {}
+            for lesson in new_day:
+                info = self.extract_lesson_info(lesson)
+                subject = info["subject"]
+                if subject:
+                    hours = self.get_lesson_hours(lesson)
+                    new_subject_hours[subject] = new_subject_hours.get(subject, 0) + hours
+
+            all_subjects = set(old_subject_hours.keys()) | set(new_subject_hours.keys())
             for subject in all_subjects:
-                old_count = old_subjects.get(subject, 0)
-                new_count = new_subjects.get(subject, 0)
+                old_hours = old_subject_hours.get(subject, 0)
+                new_hours = new_subject_hours.get(subject, 0)
 
-                if old_count > new_count:
-                    diff = old_count - new_count
-                    if new_count == 0:
-                        if old_count == 1:
+                if old_hours > new_hours:
+                    diff = old_hours - new_hours
+                    if new_hours == 0:
+                        if old_hours == 1:
                             changes.append(
                                 {"day": day, "type": "UITVAL", "subject": subject}
                             )
@@ -285,7 +297,7 @@ class ScheduleMonitor(BaseMonitor):
                                     "day": day,
                                     "type": "COMPLETE_UITVAL",
                                     "subject": subject,
-                                    "count": old_count,
+                                    "count": old_hours,
                                 }
                             )
                     else:
@@ -298,8 +310,8 @@ class ScheduleMonitor(BaseMonitor):
                             }
                         )
 
-                if old_count < new_count:
-                    diff = new_count - old_count
+                if old_hours < new_hours:
+                    diff = new_hours - old_hours
                     changes.append(
                         {
                             "day": day,
@@ -431,7 +443,7 @@ class ScheduleMonitor(BaseMonitor):
 
         return None
 
-    def notify_changes(self, changes, notifiers):
+    def notify_changes(self, changes, notifiers, rolled_over=False):
         if not changes:
             return
 
@@ -483,5 +495,5 @@ class ScheduleMonitor(BaseMonitor):
 
         for notifier in notifiers:
             notifier.send_schedule_notification(
-                self.username, self.user_config, changes, current_schedule_display
+                self.username, self.user_config, changes, current_schedule_display, rolled_over
             )
