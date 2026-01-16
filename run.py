@@ -73,6 +73,9 @@ def process_user(username, user_config, app_config, api, monitors, notifiers):
         except Exception as e:
             logger.log_error(username, f"{monitor.__class__.__name__} failed", e)
 
+    if not user_config.get("state"):
+        user_config["state"] = {}
+
     user_config["state"]["last_successful_run"] = datetime.now().isoformat()
     save_user_config(username, user_config, app_config["paths"]["config_dir"])
     logger.console_success("User processing completed", indent=2)
