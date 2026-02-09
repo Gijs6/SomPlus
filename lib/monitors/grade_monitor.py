@@ -25,66 +25,31 @@ class GradeMonitor(BaseMonitor):
             if entry_type in filters["exclude_types"]:
                 continue
 
-            vak = entry.get("vak", {})
-            if not isinstance(vak, dict):
-                vak = {}
-            subject_abbr = vak.get("afkorting", "")
-            if subject_abbr in filters["exclude_subjects"]:
+            additional = entry.get("additionalObjects", {})
+            subject_name = additional.get("vaknaam", "")
+            if subject_name in filters["exclude_subjects"]:
                 continue
 
             clean_entry = {}
             for k, v in entry.items():
                 if k in ["links", "permissions", "$type"]:
                     continue
-                if k == "additionalObjects" and (not v or v == {}):
-                    continue
                 clean_entry[k] = v
-
-            if "vak" in clean_entry and isinstance(clean_entry["vak"], dict):
-                cleaned_vak = {}
-                for k, v in clean_entry["vak"].items():
-                    if k in ["links", "permissions"]:
-                        continue
-                    if k == "additionalObjects" and (not v or v == {}):
-                        continue
-                    cleaned_vak[k] = v
-                clean_entry["vak"] = cleaned_vak
-
-            if "leerling" in clean_entry and isinstance(clean_entry["leerling"], dict):
-                cleaned_leerling = {}
-                for k, v in clean_entry["leerling"].items():
-                    if k in ["links", "permissions"]:
-                        continue
-                    if k == "additionalObjects" and (not v or v == {}):
-                        continue
-                    cleaned_leerling[k] = v
-                clean_entry["leerling"] = cleaned_leerling
-
-            if "herkansing" in clean_entry and isinstance(
-                clean_entry["herkansing"], dict
-            ):
-                cleaned_herkansing = {}
-                for k, v in clean_entry["herkansing"].items():
-                    if k in ["links", "permissions"]:
-                        continue
-                    if k == "additionalObjects" and (not v or v == {}):
-                        continue
-                    cleaned_herkansing[k] = v
-                clean_entry["herkansing"] = cleaned_herkansing
 
             grades.append(clean_entry)
 
         grades.sort(
-            key=lambda x: x.get("datumInvoer", ""),
+            key=lambda x: x.get("datumInvoerEerstePoging", ""),
             reverse=True,
         )
 
         return grades
 
     def has_valid_result(self, entry):
-        has_result = entry.get("resultaat") not in [None, ""]
-        has_label = entry.get("resultaatLabelAfkorting") not in [None, ""]
-        return has_result or has_label
+        has_cijfer = entry.get("cijfer") is not None
+        has_formatted = entry.get("formattedResultaat") not in [None, ""]
+        has_label = entry.get("label") not in [None, ""]
+        return has_cijfer or has_formatted or has_label
 
     def load_cached_data(self):
         path = self.get_user_data_path("grades.json")
@@ -96,7 +61,8 @@ class GradeMonitor(BaseMonitor):
 
     def compare_data(self, old_data, new_data):
         def make_key(grade):
-            subject = grade.get("vak", {}).get("afkorting", "")
+            additional = grade.get("additionalObjects", {})
+            subject = additional.get("vaknaam", "")
             test = grade.get("omschrijving", "")
             return (subject, test)
 
@@ -114,40 +80,26 @@ class GradeMonitor(BaseMonitor):
                 old_grade = old_dict[key]
                 grade_changes = {}
 
-                old_result = old_grade.get("geldendResultaat") or old_grade.get(
-                    "resultaat", ""
-                )
-                new_result = new_grade.get("geldendResultaat") or new_grade.get(
-                    "resultaat", ""
-                )
+                old_result = old_grade.get("formattedResultaat", "")
+                new_result = new_grade.get("formattedResultaat", "")
                 if old_result != new_result:
                     grade_changes["resultaat"] = {"old": old_result, "new": new_result}
 
-                old_has_herkansing = "herkansing" in old_grade and old_grade.get(
-                    "herkansing"
-                )
-                new_has_herkansing = "herkansing" in new_grade and new_grade.get(
-                    "herkansing"
-                )
+                old_has_herkansing = old_grade.get("cijferHerkansing1") is not None
+                new_has_herkansing = new_grade.get("cijferHerkansing1") is not None
 
                 if new_has_herkansing and not old_has_herkansing:
                     changes.append(
                         {
                             "type": "NEW_HERKANSING",
                             "grade": new_grade,
-                            "original_result": old_result,
-                            "herkansing_result": new_grade.get("herkansing", {}).get(
-                                "resultaat", ""
-                            ),
+                            "original_result": old_grade.get("formattedEerstePoging", ""),
+                            "herkansing_result": new_grade.get("formattedHerkansing1", ""),
                         }
                     )
                 elif new_has_herkansing and old_has_herkansing:
-                    old_herk_result = old_grade.get("herkansing", {}).get(
-                        "resultaat", ""
-                    )
-                    new_herk_result = new_grade.get("herkansing", {}).get(
-                        "resultaat", ""
-                    )
+                    old_herk_result = old_grade.get("formattedHerkansing1", "")
+                    new_herk_result = new_grade.get("formattedHerkansing1", "")
                     if old_herk_result != new_herk_result:
                         grade_changes["herkansing_resultaat"] = {
                             "old": old_herk_result,
@@ -158,24 +110,6 @@ class GradeMonitor(BaseMonitor):
                     grade_changes["weging"] = {
                         "old": old_grade.get("weging"),
                         "new": new_grade.get("weging"),
-                    }
-
-                if old_grade.get("examenWeging") != new_grade.get("examenWeging"):
-                    grade_changes["examenWeging"] = {
-                        "old": old_grade.get("examenWeging"),
-                        "new": new_grade.get("examenWeging"),
-                    }
-
-                if old_grade.get("teltNietmee") != new_grade.get("teltNietmee"):
-                    grade_changes["teltNietmee"] = {
-                        "old": old_grade.get("teltNietmee"),
-                        "new": new_grade.get("teltNietmee"),
-                    }
-
-                if old_grade.get("vrijstelling") != new_grade.get("vrijstelling"):
-                    grade_changes["vrijstelling"] = {
-                        "old": old_grade.get("vrijstelling"),
-                        "new": new_grade.get("vrijstelling"),
                     }
 
                 if old_grade.get("periode") != new_grade.get("periode"):
@@ -200,14 +134,10 @@ class GradeMonitor(BaseMonitor):
 
         def get_datetime(change):
             if change["type"] in ["CHANGED", "NEW_HERKANSING"]:
-                dt_str = (
-                    change["new_grade"].get("datumInvoer", "")
-                    if "new_grade" in change
-                    else change["grade"].get("datumInvoer", "")
-                )
+                grade = change.get("new_grade") or change.get("grade")
             else:
-                dt_str = change["grade"].get("datumInvoer", "")
-            return dt_str
+                grade = change.get("grade")
+            return grade.get("datumInvoerEerstePoging", "")
 
         changes.sort(key=get_datetime, reverse=True)
 

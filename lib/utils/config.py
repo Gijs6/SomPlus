@@ -125,6 +125,10 @@ def get_discord_errors_webhook_url(user_config):
     return get(user_config, "notifications.discord.errors.webhook_url")
 
 
+def get_discord_errors_mention_role_id(user_config):
+    return get(user_config, "notifications.discord.errors.mention_role_id")
+
+
 def get_discord_errors_tts(user_config):
     return get(user_config, "notifications.discord.errors.tts", False)
 

@@ -18,13 +18,13 @@ class DiscordNotifier:
 
         if change_type == "NEW_HERKANSING":
             grade = change["grade"]
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "onbekend")
 
             original_result = change.get("original_result", "?")
             herkansing_result = change.get("herkansing_result", "?")
-            geldig_result = grade.get("geldendResultaat") or grade.get("resultaat", "?")
+            geldig_result = grade.get("formattedResultaat", "?")
 
             try:
                 orig_num = float(str(original_result).replace(",", "."))
@@ -71,15 +71,10 @@ class DiscordNotifier:
                     "value": f"**{geldig_result}**",
                     "inline": True,
                 },
-                {"name": "Vak", "value": f"{subject} - {subject_naam}", "inline": True},
+                {"name": "Vak", "value": subject, "inline": True},
                 {
                     "name": "Weging",
                     "value": str(grade.get("weging", "?")),
-                    "inline": True,
-                },
-                {
-                    "name": "Examen weging",
-                    "value": str(grade.get("examenWeging", "?")),
                     "inline": True,
                 },
                 {
@@ -88,13 +83,8 @@ class DiscordNotifier:
                     "inline": True,
                 },
                 {
-                    "name": "Leerjaar",
-                    "value": str(grade.get("leerjaar", "?")),
-                    "inline": True,
-                },
-                {
                     "name": "Type",
-                    "value": grade.get("herkansingstype", "?"),
+                    "value": grade.get("herkansing", "?"),
                     "inline": True,
                 },
             ]
@@ -118,13 +108,9 @@ class DiscordNotifier:
 
         elif change_type == "NEW":
             grade = change["grade"]
-            grade_value = (
-                grade.get("geldendResultaat")
-                or grade.get("resultaat")
-                or grade.get("resultaatLabelAfkorting", "")
-            )
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            grade_value = grade.get("formattedResultaat", "") or grade.get("label", "")
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "onbekend")
 
             try:
@@ -150,7 +136,7 @@ class DiscordNotifier:
 
             fields = [
                 {"name": "Cijfer", "value": f"**{grade_value}**", "inline": True},
-                {"name": "Vak", "value": f"{subject} - {subject_naam}", "inline": True},
+                {"name": "Vak", "value": subject, "inline": True},
                 {
                     "name": "Periode",
                     "value": str(grade.get("periode", "?")),
@@ -159,62 +145,45 @@ class DiscordNotifier:
             ]
 
             weging = grade.get("weging", 0)
-            examen_weging = grade.get("examenWeging", 0)
-            if weging or examen_weging:
+            if weging:
                 fields.append(
                     {
                         "name": "Weging",
-                        "value": f"Voortgang: {weging}, examen: {examen_weging}",
+                        "value": str(weging),
                         "inline": True,
                     }
                 )
 
-            if grade.get("leerjaar"):
+            if grade.get("toetssoort"):
                 fields.append(
-                    {
-                        "name": "Leerjaar",
-                        "value": str(grade.get("leerjaar")),
-                        "inline": True,
-                    }
+                    {"name": "Toetssoort", "value": grade.get("toetssoort"), "inline": True}
                 )
 
-            if grade.get("type"):
-                fields.append(
-                    {"name": "Type", "value": grade.get("type"), "inline": True}
-                )
-
-            if grade.get("herkansing"):
-                herk_result = grade.get("herkansing", {}).get("resultaat", "?")
+            if grade.get("herkansing") and grade.get("herkansing") != "Geen":
                 fields.append(
                     {
                         "name": "Herkansbaar",
-                        "value": f"type: {grade.get('herkansingstype', '?')}",
-                        "inline": False,
+                        "value": grade.get("herkansing", "?"),
+                        "inline": True,
                     }
                 )
 
             flags = []
-            if grade.get("teltNietmee"):
-                flags.append("telt niet mee")
-            if grade.get("vrijstelling"):
-                flags.append("vrijstelling")
-            if grade.get("toetsNietGemaakt"):
-                flags.append("toets niet gemaakt")
-            if grade.get("isExamendossierResultaat"):
-                flags.append("examendossier")
-            if grade.get("isVoortgangsdossierResultaat"):
-                flags.append("voortgangsdossier")
+            if grade.get("isLabel"):
+                flags.append("label cijfer")
+            if not grade.get("isVoldoende"):
+                flags.append("onvoldoende")
 
             if flags:
                 fields.append(
                     {"name": "Status", "value": "\n".join(flags), "inline": False}
                 )
 
-            if grade.get("datumInvoer"):
+            if grade.get("datumInvoerEerstePoging"):
                 fields.append(
                     {
                         "name": "Invoerdatum",
-                        "value": grade.get("datumInvoer").split("T")[0],
+                        "value": grade.get("datumInvoerEerstePoging").split("T")[0],
                         "inline": True,
                     }
                 )
@@ -232,8 +201,8 @@ class DiscordNotifier:
             new_grade = change["new_grade"]
             grade_changes = change.get("changes", {})
 
-            subject = new_grade.get("vak", {}).get("afkorting", "")
-            subject_naam = new_grade.get("vak", {}).get("naam", subject)
+            additional = new_grade.get("additionalObjects", {})
+            subject = additional.get("vaknaam", "")
             test_name = new_grade.get("omschrijving", "Onbekend")
 
             changes_list = []
@@ -336,7 +305,7 @@ class DiscordNotifier:
             fields = [
                 {
                     "name": "Vak",
-                    "value": f"{subject} - {subject_naam}",
+                    "value": subject,
                     "inline": False,
                 },
                 {
@@ -346,9 +315,7 @@ class DiscordNotifier:
                 },
             ]
 
-            current_grade = new_grade.get("geldendResultaat") or new_grade.get(
-                "resultaat", "?"
-            )
+            current_grade = new_grade.get("formattedResultaat", "?")
             fields.append(
                 {
                     "name": "Huidig cijfer",
@@ -366,23 +333,13 @@ class DiscordNotifier:
                     }
                 )
 
-            if new_grade.get("leerjaar"):
-                fields.append(
-                    {
-                        "name": "Leerjaar",
-                        "value": str(new_grade.get("leerjaar")),
-                        "inline": True,
-                    }
-                )
-
             weging = new_grade.get("weging", 0)
-            examen_weging = new_grade.get("examenWeging", 0)
-            if weging or examen_weging:
+            if weging:
                 fields.append(
                     {
                         "name": "Weging",
-                        "value": f"Voortgang: {weging}, examen: {examen_weging}",
-                        "inline": False,
+                        "value": str(weging),
+                        "inline": True,
                     }
                 )
 
@@ -396,9 +353,9 @@ class DiscordNotifier:
 
         elif change_type == "REMOVED":
             grade = change["grade"]
-            grade_value = grade.get("geldendResultaat") or grade.get("resultaat", "")
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            grade_value = grade.get("formattedResultaat", "")
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "onbekend")
 
             color = config.get_discord_grades_color_low(user_config)
@@ -413,7 +370,7 @@ class DiscordNotifier:
                     "value": f"~~{grade_value}~~",
                     "inline": True,
                 },
-                {"name": "Vak", "value": f"{subject} - {subject_naam}", "inline": True},
+                {"name": "Vak", "value": subject, "inline": True},
                 {
                     "name": "Periode",
                     "value": str(grade.get("periode", "?")),
@@ -422,28 +379,18 @@ class DiscordNotifier:
             ]
 
             weging = grade.get("weging", 0)
-            examen_weging = grade.get("examenWeging", 0)
-            if weging or examen_weging:
+            if weging:
                 fields.append(
                     {
                         "name": "Weging",
-                        "value": f"Voortgang: {weging}, examen: {examen_weging}",
+                        "value": str(weging),
                         "inline": True,
                     }
                 )
 
-            if grade.get("type"):
+            if grade.get("toetssoort"):
                 fields.append(
-                    {"name": "Type", "value": grade.get("type"), "inline": True}
-                )
-
-            if grade.get("leerjaar"):
-                fields.append(
-                    {
-                        "name": "Leerjaar",
-                        "value": str(grade.get("leerjaar")),
-                        "inline": True,
-                    }
+                    {"name": "Toetssoort", "value": grade.get("toetssoort"), "inline": True}
                 )
 
             embed = {
@@ -548,9 +495,14 @@ class DiscordNotifier:
 
         error_count = sum(len(errors) for errors in error_summary.values())
 
+        content = None
+        mention_role_id = config.get_discord_errors_mention_role_id(user_config)
+        if mention_role_id:
+            content = f"<@&{mention_role_id}>"
+
         embed = {
-            "title": f"Fouten ({error_count})",
-            "description": f"Er zijn {error_count} fout{'en' if error_count != 1 else ''} opgetreden in het afgelopen uur",
+            "title": f"Errors ({error_count})",
+            "description": f"{error_count} error{'s' if error_count != 1 else ''} occurred in the past hour",
             "color": config.get_discord_errors_color(user_config),
             "footer": {"text": "SomPlus"},
         }
@@ -559,6 +511,9 @@ class DiscordNotifier:
             "tts": config.get_discord_errors_tts(user_config),
             "embeds": [embed],
         }
+
+        if content:
+            payload["content"] = content
 
         webhook_url = config.get_discord_errors_webhook_url(user_config)
         self.send_webhook(webhook_url, payload)

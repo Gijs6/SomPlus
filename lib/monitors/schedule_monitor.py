@@ -18,14 +18,14 @@ class ScheduleMonitor(BaseMonitor):
         try:
             raw_data, rolled_over = self.fetch_data(access_token)
         except Exception as e:
-            logger.console_error(f"Failed to fetch data: {e}", indent=4)
+            logger.log_error(self.username, f"{self.__class__.__name__} failed to fetch data", e)
             return
 
         logger.console_print("Processing data...", indent=4)
         try:
             processed_data = self.process_data(raw_data)
         except Exception as e:
-            logger.console_error(f"Failed to process data: {e}", indent=4)
+            logger.log_error(self.username, f"{self.__class__.__name__} failed to process data", e)
             return
 
         logger.console_print("Loading cached data...", indent=4)
@@ -40,7 +40,7 @@ class ScheduleMonitor(BaseMonitor):
         try:
             changes = self.compare_data(cached_data, processed_data, access_token)
         except Exception as e:
-            logger.console_error(f"Failed to compare data: {e}", indent=4)
+            logger.log_error(self.username, f"{self.__class__.__name__} failed to compare data", e)
             return
 
         if changes:
@@ -54,7 +54,7 @@ class ScheduleMonitor(BaseMonitor):
                 self.notify_changes(changes, notifiers, rolled_over)
                 logger.console_success("Saved data and sent notifications", indent=4)
             except Exception as e:
-                logger.console_error(f"Failed to send notifications: {e}", indent=4)
+                logger.log_error(self.username, f"{self.__class__.__name__} failed to send notifications", e)
         else:
             logger.console_info("No changes detected", indent=4)
             self.save_data(processed_data)
@@ -433,9 +433,7 @@ class ScheduleMonitor(BaseMonitor):
                     best_week_number = week_number
 
             except Exception as e:
-                logger.console_error(
-                    f"Week {week_number}: Failed to fetch ({e})", indent=6
-                )
+                logger.log_error(self.username, f"Failed to fetch schedule for week {week_number}", e)
                 continue
 
         if best_week:

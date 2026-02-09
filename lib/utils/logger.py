@@ -97,11 +97,14 @@ def log_error(username, message, exception=None):
     if exception:
         error_detail = f"{message}: {str(exception)}"
 
+    console_print(f"[{username}] ERROR: {error_detail}", indent=2, color=RED, bold=True)
+
+    if log_dir is None:
+        return
+
     log_line = f"{timestamp} | {username} | ERROR | {error_detail}\n"
     with open(get_daily_log_path(), "a") as f:
         f.write(log_line)
-
-    console_print(f"[{username}] ERROR: {error_detail}", indent=2, color=RED, bold=True)
 
     hour_key = get_current_hour_key()
     if hour_key not in error_tracking:

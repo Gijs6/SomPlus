@@ -107,9 +107,7 @@ def check_hourly_errors(user_configs, notifiers):
                     username, user_configs[username], {username: error_list}
                 )
             except Exception as e:
-                logger.console_error(
-                    f"Notification failed for {username}: {e}", indent=2
-                )
+                logger.log_error(username, "Failed to send error notification", e)
 
     logger.clear_hour_errors(hour_key)
     logger.console_success("Error notifications sent and cleared", indent=2)
@@ -134,7 +132,7 @@ def main():
             "logs_dir": os.path.join(base_dir, "logs"),
         }
     except Exception as e:
-        logger.console_error(f"Failed to load configuration: {e}")
+        logger.log_error("system", "Failed to load configuration", e)
         return
 
     try:
@@ -143,7 +141,7 @@ def main():
             f"Initialized logging: {app_config['paths']['logs_dir']}"
         )
     except Exception as e:
-        logger.console_error(f"Failed to initialize logging: {e}")
+        logger.log_error("system", "Failed to initialize logging", e)
         return
 
     try:
@@ -155,7 +153,7 @@ def main():
         )
         logger.console_success("Initialized API client")
     except Exception as e:
-        logger.console_error(f"Failed to initialize API client: {e}")
+        logger.log_error("system", "Failed to initialize API client", e)
         return
 
     try:
@@ -164,14 +162,14 @@ def main():
             f"Loaded {len(user_configs)} user configuration(s): {', '.join(user_configs.keys())}"
         )
     except Exception as e:
-        logger.console_error(f"Failed to load user configurations: {e}")
+        logger.log_error("system", "Failed to load user configurations", e)
         return
 
     try:
         notifiers = [PushSaferNotifier(), DiscordNotifier()]
         logger.console_success(f"Initialized {len(notifiers)} notifier(s)\n")
     except Exception as e:
-        logger.console_error(f"Failed to initialize notifiers: {e}")
+        logger.log_error("system", "Failed to initialize notifiers", e)
         return
 
     check_hourly_errors(user_configs, notifiers)
@@ -193,7 +191,7 @@ def main():
         logger.rotate_logs(daily_retention, error_retention)
         logger.console_success("Completed log rotation")
     except Exception as e:
-        logger.console_error(f"Failed to rotate logs: {e}")
+        logger.log_error("system", "Failed to rotate logs", e)
 
     logger.console_print("\n" + "*" * 60)
     logger.console_success("All tasks completed successfully!")

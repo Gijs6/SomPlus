@@ -25,30 +25,41 @@ class SomTodayAPI:
         return access_token, new_refresh_token
 
     def fetch_grades(self, access_token, leerling_id):
-        url = f"{self.api_base}/resultaten/huidigVoorLeerling/{leerling_id}"
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
         }
+        params = {
+            "type": ["Toetskolom", "DeeltoetsKolom", "Werkstukcijferkolom", "Advieskolom"],
+            "additional": ["vaknaam", "resultaatkolom", "naamalternatiefniveau", "vakuuid", "lichtinguuid"],
+            "sort": "desc-geldendResultaatCijferInvoer",
+        }
 
         all_grades = []
-        range_start = 0
-        range_size = self.pagination_size
 
-        while True:
-            headers["Range"] = f"items={range_start}-{range_start + range_size - 1}"
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
+        endpoints = [
+            f"{self.api_base}/geldendvoortgangsdossierresultaten/leerling/{leerling_id}",
+            f"{self.api_base}/geldendexamendossierresultaten/leerling/{leerling_id}",
+        ]
 
-            batch = response.json().get("items", [])
-            if not batch:
-                break
+        for url in endpoints:
+            range_start = 0
+            range_size = self.pagination_size
 
-            all_grades.extend(batch)
-            range_start += range_size
+            while True:
+                headers["Range"] = f"items={range_start}-{range_start + range_size - 1}"
+                response = requests.get(url, headers=headers, params=params)
+                response.raise_for_status()
 
-            if len(batch) < range_size:
-                break
+                batch = response.json().get("items", [])
+                if not batch:
+                    break
+
+                all_grades.extend(batch)
+                range_start += range_size
+
+                if len(batch) < range_size:
+                    break
 
         return all_grades
 

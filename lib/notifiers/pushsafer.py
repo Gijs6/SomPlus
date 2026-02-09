@@ -16,13 +16,13 @@ class PushSaferNotifier:
 
         if change_type == "NEW_HERKANSING":
             grade = change["grade"]
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "")
 
             original_result = change.get("original_result", "?")
             herkansing_result = change.get("herkansing_result", "?")
-            geldig_result = grade.get("geldendResultaat") or grade.get("resultaat", "?")
+            geldig_result = grade.get("formattedResultaat", "?")
 
             try:
                 orig_num = float(str(original_result).replace(",", "."))
@@ -36,25 +36,21 @@ class PushSaferNotifier:
 
             title = f"Herkansing: {original_result} → {herkansing_result}"
             message = (
-                f"{subject} - {subject_naam}\n"
+                f"{subject}\n"
                 f"{test_name}\n"
                 f"Origineel cijfer: {original_result}\n"
                 f"Herkansing: {herkansing_result}\n"
                 f"Geldig cijfer: {geldig_result}\n"
-                f"Weging: {grade.get('weging', '?')}, examen: {grade.get('examenWeging', '?')}\n"
-                f"Periode {grade.get('periode', '?')}, leerjaar {grade.get('leerjaar', '?')}\n"
-                f"Type: {grade.get('herkansingstype', '?')}"
+                f"Weging: {grade.get('weging', '?')}\n"
+                f"Periode {grade.get('periode', '?')}\n"
+                f"Type: {grade.get('herkansing', '?')}"
             )
 
         elif change_type == "NEW":
             grade = change["grade"]
-            grade_value = (
-                grade.get("geldendResultaat")
-                or grade.get("resultaat")
-                or grade.get("resultaatLabelAfkorting", "")
-            )
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            grade_value = grade.get("formattedResultaat", "") or grade.get("label", "")
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "")
 
             try:
@@ -77,33 +73,27 @@ class PushSaferNotifier:
 
             title = f"Nieuw cijfer: {grade_value}"
             message_parts = [
-                f"{subject} - {subject_naam}",
-                f"{test_name}",
+                subject,
+                test_name,
                 f"Cijfer: {grade_value}",
-                f"Periode {grade.get('periode', '?')}, leerjaar {grade.get('leerjaar', '?')}",
-                f"Weging: {grade.get('weging', '?')}, examen: {grade.get('examenWeging', '?')}",
+                f"Periode {grade.get('periode', '?')}",
+                f"Weging: {grade.get('weging', '?')}",
             ]
 
-            if grade.get("type"):
-                message_parts.append(f"Type: {grade.get('type')}")
+            if grade.get("toetssoort"):
+                message_parts.append(f"Toetssoort: {grade.get('toetssoort')}")
 
             flags = []
-            if grade.get("teltNietmee"):
-                flags.append("telt niet mee")
-            if grade.get("vrijstelling"):
-                flags.append("vrijstelling")
-            if grade.get("toetsNietGemaakt"):
-                flags.append("toets niet gemaakt")
-            if grade.get("isExamendossierResultaat"):
-                flags.append("examendossier")
+            if grade.get("isLabel"):
+                flags.append("label cijfer")
+            if not grade.get("isVoldoende"):
+                flags.append("onvoldoende")
 
             if flags:
                 message_parts.append(", ".join(flags))
 
-            if grade.get("herkansing"):
-                message_parts.append(
-                    f"herkansbaar: {grade.get('herkansingstype', '?')}"
-                )
+            if grade.get("herkansing") and grade.get("herkansing") != "Geen":
+                message_parts.append(f"Herkansbaar: {grade.get('herkansing')}")
 
             message = "\n".join(message_parts)
 
@@ -112,8 +102,8 @@ class PushSaferNotifier:
             new_grade = change["new_grade"]
             grade_changes = change.get("changes", {})
 
-            subject = new_grade.get("vak", {}).get("afkorting", "")
-            subject_naam = new_grade.get("vak", {}).get("naam", subject)
+            additional = new_grade.get("additionalObjects", {})
+            subject = additional.get("vaknaam", "")
             test_name = new_grade.get("omschrijving", "")
 
             changes_list = []
@@ -151,54 +141,37 @@ class PushSaferNotifier:
                 new_w = grade_changes["weging"]["new"]
                 changes_list.append(f"weging: {old_w} → {new_w}")
 
-            if "examenWeging" in grade_changes:
-                old_ew = grade_changes["examenWeging"]["old"]
-                new_ew = grade_changes["examenWeging"]["new"]
-                changes_list.append(f"examen weging: {old_ew} → {new_ew}")
-
-            if "teltNietmee" in grade_changes:
-                old_t = "ja" if grade_changes["teltNietmee"]["old"] else "nee"
-                new_t = "ja" if grade_changes["teltNietmee"]["new"] else "nee"
-                changes_list.append(f"telt niet mee: {old_t} → {new_t}")
-
-            if "vrijstelling" in grade_changes:
-                old_v = "ja" if grade_changes["vrijstelling"]["old"] else "nee"
-                new_v = "ja" if grade_changes["vrijstelling"]["new"] else "nee"
-                changes_list.append(f"vrijstelling: {old_v} → {new_v}")
-
             if "periode" in grade_changes:
                 old_p = grade_changes["periode"]["old"]
                 new_p = grade_changes["periode"]["new"]
                 changes_list.append(f"periode: {old_p} → {new_p}")
 
             title = f"Cijfer gewijzigd: {subject}"
-            current_grade = new_grade.get("geldendResultaat") or new_grade.get(
-                "resultaat", "?"
-            )
+            current_grade = new_grade.get("formattedResultaat", "?")
             message = (
-                f"{subject} - {subject_naam}\n"
+                f"{subject}\n"
                 f"{test_name}\n"
                 f"Huidig cijfer: {current_grade}\n"
-                f"Periode {new_grade.get('periode', '?')}, leerjaar {new_grade.get('leerjaar', '?')}\n"
+                f"Periode {new_grade.get('periode', '?')}\n"
                 f"\nWijzigingen:\n" + "\n".join(changes_list)
             )
 
         elif change_type == "REMOVED":
             grade = change["grade"]
-            grade_value = grade.get("geldendResultaat") or grade.get("resultaat", "")
-            subject = grade.get("vak", {}).get("afkorting", "")
-            subject_naam = grade.get("vak", {}).get("naam", subject)
+            additional = grade.get("additionalObjects", {})
+            grade_value = grade.get("formattedResultaat", "")
+            subject = additional.get("vaknaam", "")
             test_name = grade.get("omschrijving", "")
 
             sound = config.get_pushsafer_grades_sound_low(user_config)
             title = f"Cijfer verwijderd: {grade_value}"
             message = (
-                f"{subject} - {subject_naam}\n"
+                f"{subject}\n"
                 f"{test_name}\n"
                 f"Verwijderd cijfer: {grade_value}\n"
-                f"Periode {grade.get('periode', '?')}, leerjaar {grade.get('leerjaar', '?')}\n"
-                f"Weging: {grade.get('weging', '?')}, examen: {grade.get('examenWeging', '?')}\n"
-                f"Type: {grade.get('type', '?')}"
+                f"Periode {grade.get('periode', '?')}\n"
+                f"Weging: {grade.get('weging', '?')}\n"
+                f"Toetssoort: {grade.get('toetssoort', '?')}"
             )
 
         else:
@@ -215,7 +188,7 @@ class PushSaferNotifier:
         )
 
     def send_schedule_notification(
-        self, username, user_config, changes, current_schedule
+        self, username, user_config, changes, current_schedule, rolled_over=False
     ):
         if not config.get_pushsafer_schedule_enabled(user_config):
             return
