@@ -30,8 +30,19 @@ class SomTodayAPI:
             "Accept": "application/json",
         }
         params = {
-            "type": ["Toetskolom", "DeeltoetsKolom", "Werkstukcijferkolom", "Advieskolom"],
-            "additional": ["vaknaam", "resultaatkolom", "naamalternatiefniveau", "vakuuid", "lichtinguuid"],
+            "type": [
+                "Toetskolom",
+                "DeeltoetsKolom",
+                "Werkstukcijferkolom",
+                "Advieskolom",
+            ],
+            "additional": [
+                "vaknaam",
+                "resultaatkolom",
+                "naamalternatiefniveau",
+                "vakuuid",
+                "lichtinguuid",
+            ],
             "sort": "desc-geldendResultaatCijferInvoer",
         }
 

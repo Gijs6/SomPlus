@@ -208,13 +208,21 @@ class PushSaferNotifier:
             priority=config.get_pushsafer_schedule_priority(user_config),
         )
 
-    def send_error_notification(self, username, user_config, error_summary):
+    def send_error_notification(self, username, user_config, error_list):
         if not config.get_pushsafer_errors_enabled(user_config):
             return
 
-        error_count = sum(len(errors) for errors in error_summary.values())
+        error_count = sum(e.get("count", 1) for e in error_list)
+
+        lines = []
+        for entry in error_list:
+            line = entry["message"]
+            if entry.get("count", 1) > 1:
+                line += f" (x{entry['count']})"
+            lines.append(line)
+
         title = f"Fouten ({error_count})"
-        message = f"Er zijn {error_count} fout{'en' if error_count != 1 else ''} opgetreden in het afgelopen uur"
+        message = "\n".join(lines)
 
         self.send_notification(
             user_config,
@@ -259,7 +267,7 @@ class PushSaferNotifier:
             response = requests.post(url, data=params)
             response.raise_for_status()
         except Exception as e:
-            logger.console_error(f"PushSafer notification failed: {e}", indent=4)
+            logger.log_warning("system", f"PushSafer notification failed: {e}")
             raise
 
     def format_changes_detailed(self, changes, current_schedule):

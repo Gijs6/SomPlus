@@ -63,7 +63,7 @@ def process_user(username, user_config, app_config, api, monitors, notifiers):
         logger.log_info(username, "Token refreshed successfully")
 
     except Exception as e:
-        logger.log_error(username, "Token refresh failed", e)
+        logger.log_critical(username, "Token refresh failed", e)
         return
 
     for monitor in monitors:
@@ -71,7 +71,7 @@ def process_user(username, user_config, app_config, api, monitors, notifiers):
             logger.console_print(f"\nRunning {monitor.__class__.__name__}...", indent=2)
             monitor.run(access_token, notifiers)
         except Exception as e:
-            logger.log_error(username, f"{monitor.__class__.__name__} failed", e)
+            logger.log_critical(username, f"{monitor.__class__.__name__} failed", e)
 
     if not user_config.get("state"):
         user_config["state"] = {}
@@ -91,7 +91,9 @@ def check_hourly_errors(user_configs, notifiers):
     logger.console_print(f"\n{'=' * 60}")
     logger.console_info(f"Processing hourly error notifications ({hour_key})")
     logger.console_print(f"{'=' * 60}")
-    total_errors = sum(len(error_list) for error_list in errors.values())
+    total_errors = sum(
+        sum(e.get("count", 1) for e in error_list) for error_list in errors.values()
+    )
     logger.console_print(
         f"Found {total_errors} error(s) for {len(errors)} user(s)", indent=2
     )
@@ -104,10 +106,10 @@ def check_hourly_errors(user_configs, notifiers):
         for notifier in notifiers:
             try:
                 notifier.send_error_notification(
-                    username, user_configs[username], {username: error_list}
+                    username, user_configs[username], error_list
                 )
             except Exception as e:
-                logger.log_error(username, "Failed to send error notification", e)
+                logger.log_warning(username, "Failed to send error notification", e)
 
     logger.clear_hour_errors(hour_key)
     logger.console_success("Error notifications sent and cleared", indent=2)
@@ -132,7 +134,7 @@ def main():
             "logs_dir": os.path.join(base_dir, "logs"),
         }
     except Exception as e:
-        logger.log_error("system", "Failed to load configuration", e)
+        logger.log_warning("system", "Failed to load configuration", e)
         return
 
     try:
@@ -141,7 +143,7 @@ def main():
             f"Initialized logging: {app_config['paths']['logs_dir']}"
         )
     except Exception as e:
-        logger.log_error("system", "Failed to initialize logging", e)
+        logger.log_warning("system", "Failed to initialize logging", e)
         return
 
     try:
@@ -153,7 +155,7 @@ def main():
         )
         logger.console_success("Initialized API client")
     except Exception as e:
-        logger.log_error("system", "Failed to initialize API client", e)
+        logger.log_warning("system", "Failed to initialize API client", e)
         return
 
     try:
@@ -162,14 +164,14 @@ def main():
             f"Loaded {len(user_configs)} user configuration(s): {', '.join(user_configs.keys())}"
         )
     except Exception as e:
-        logger.log_error("system", "Failed to load user configurations", e)
+        logger.log_warning("system", "Failed to load user configurations", e)
         return
 
     try:
         notifiers = [PushSaferNotifier(), DiscordNotifier()]
         logger.console_success(f"Initialized {len(notifiers)} notifier(s)\n")
     except Exception as e:
-        logger.log_error("system", "Failed to initialize notifiers", e)
+        logger.log_warning("system", "Failed to initialize notifiers", e)
         return
 
     check_hourly_errors(user_configs, notifiers)
@@ -191,7 +193,7 @@ def main():
         logger.rotate_logs(daily_retention, error_retention)
         logger.console_success("Completed log rotation")
     except Exception as e:
-        logger.log_error("system", "Failed to rotate logs", e)
+        logger.log_warning("system", "Failed to rotate logs", e)
 
     logger.console_print("\n" + "*" * 60)
     logger.console_success("All tasks completed successfully!")

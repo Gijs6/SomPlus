@@ -93,8 +93,12 @@ class GradeMonitor(BaseMonitor):
                         {
                             "type": "NEW_HERKANSING",
                             "grade": new_grade,
-                            "original_result": old_grade.get("formattedEerstePoging", ""),
-                            "herkansing_result": new_grade.get("formattedHerkansing1", ""),
+                            "original_result": old_grade.get(
+                                "formattedEerstePoging", ""
+                            ),
+                            "herkansing_result": new_grade.get(
+                                "formattedHerkansing1", ""
+                            ),
                         }
                     )
                 elif new_has_herkansing and old_has_herkansing:

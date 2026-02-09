@@ -2,8 +2,20 @@ import os
 import json
 from datetime import datetime, timedelta
 
+CRITICAL = "critical"
+ERROR = "error"
+WARNING = "warning"
+INFO = "info"
+
 log_dir = None
 error_tracking = {}
+
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 
 def init_logging(logs_dir):
@@ -45,12 +57,90 @@ def get_current_hour_key():
     return now.strftime("%Y-%m-%dT%H:00:00")
 
 
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-BLUE = "\033[94m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
+def _log(severity, username, message, exception=None):
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    time_short = now.strftime("%H:%M:%S")
+
+    detail = f"{message}: {exception}" if exception else message
+    severity_upper = severity.upper()
+
+    if severity in (CRITICAL, ERROR):
+        console_print(
+            f"[{username}] {severity_upper}: {detail}", indent=2, color=RED, bold=True
+        )
+    elif severity == WARNING:
+        console_print(
+            f"[{username}] WARNING: {detail}", indent=2, color=YELLOW, bold=True
+        )
+    else:
+        console_print(f"[{username}] {detail}", indent=2)
+
+    if log_dir is None:
+        return
+
+    log_line = f"{timestamp} | {username} | {severity_upper} | {detail}\n"
+    with open(get_daily_log_path(), "a") as f:
+        f.write(log_line)
+
+    if severity not in (CRITICAL, ERROR):
+        return
+
+    hour_key = get_current_hour_key()
+    if hour_key not in error_tracking:
+        error_tracking[hour_key] = {}
+    if username not in error_tracking[hour_key]:
+        error_tracking[hour_key][username] = []
+
+    entries = error_tracking[hour_key][username]
+    for entry in entries:
+        if entry["message"] == message:
+            entry["count"] += 1
+            entry["last_seen"] = time_short
+            if exception:
+                entry["detail"] = str(exception)
+            save_error_tracking()
+            return
+
+    entries.append(
+        {
+            "message": message,
+            "detail": str(exception) if exception else "",
+            "count": 1,
+            "first_seen": time_short,
+            "last_seen": time_short,
+        }
+    )
+    save_error_tracking()
+
+
+def log_critical(username, message, exception=None):
+    _log(CRITICAL, username, message, exception)
+
+
+def log_error(username, message, exception=None):
+    _log(ERROR, username, message, exception)
+
+
+def log_warning(username, message, exception=None):
+    _log(WARNING, username, message, exception)
+
+
+def log_info(username, message):
+    _log(INFO, username, message)
+
+
+def get_previous_hour_errors():
+    now = datetime.now()
+    previous_hour = now - timedelta(hours=1)
+    hour_key = previous_hour.strftime("%Y-%m-%dT%H:00:00")
+    return error_tracking.get(hour_key, {}), hour_key
+
+
+def clear_hour_errors(hour_key):
+    if hour_key in error_tracking:
+        del error_tracking[hour_key]
+        save_error_tracking()
 
 
 def console_print(message, indent=0, color="", bold=False):
@@ -74,67 +164,8 @@ def console_success(message, indent=0):
     console_print(f"[OK] {message}", indent=indent, color=GREEN, bold=True)
 
 
-def console_error(message, indent=0):
-    console_print(f"[ERROR] {message}", indent=indent, color=RED, bold=True)
-
-
 def console_warning(message, indent=0):
     console_print(f"[WARNING] {message}", indent=indent, color=YELLOW, bold=True)
-
-
-def log_info(username, message):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_line = f"{timestamp} | {username} | INFO | {message}\n"
-    with open(get_daily_log_path(), "a") as f:
-        f.write(log_line)
-    console_print(f"[{username}] {message}", indent=2)
-
-
-def log_error(username, message, exception=None):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    error_detail = message
-    if exception:
-        error_detail = f"{message}: {str(exception)}"
-
-    console_print(f"[{username}] ERROR: {error_detail}", indent=2, color=RED, bold=True)
-
-    if log_dir is None:
-        return
-
-    log_line = f"{timestamp} | {username} | ERROR | {error_detail}\n"
-    with open(get_daily_log_path(), "a") as f:
-        f.write(log_line)
-
-    hour_key = get_current_hour_key()
-    if hour_key not in error_tracking:
-        error_tracking[hour_key] = {}
-    if username not in error_tracking[hour_key]:
-        error_tracking[hour_key][username] = []
-
-    error_tracking[hour_key][username].append(
-        {"time": datetime.now().strftime("%H:%M:%S"), "error": error_detail}
-    )
-    save_error_tracking()
-
-
-def get_hour_errors(hour_key=None):
-    if hour_key is None:
-        hour_key = get_current_hour_key()
-    return error_tracking.get(hour_key, {})
-
-
-def get_previous_hour_errors():
-    now = datetime.now()
-    previous_hour = now - timedelta(hours=1)
-    hour_key = previous_hour.strftime("%Y-%m-%dT%H:00:00")
-    return get_hour_errors(hour_key), hour_key
-
-
-def clear_hour_errors(hour_key):
-    if hour_key in error_tracking:
-        del error_tracking[hour_key]
-        save_error_tracking()
 
 
 def rotate_logs(retention_days, error_retention_days=30):

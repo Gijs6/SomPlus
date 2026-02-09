@@ -22,14 +22,18 @@ class BaseMonitor:
         try:
             raw_data = self.fetch_data(access_token)
         except Exception as e:
-            logger.log_error(self.username, f"{self.__class__.__name__} failed to fetch data", e)
+            logger.log_error(
+                self.username, f"{self.__class__.__name__} failed to fetch data", e
+            )
             return
 
         logger.console_print("Processing data...", indent=4)
         try:
             processed_data = self.process_data(raw_data)
         except Exception as e:
-            logger.log_error(self.username, f"{self.__class__.__name__} failed to process data", e)
+            logger.log_error(
+                self.username, f"{self.__class__.__name__} failed to process data", e
+            )
             return
 
         logger.console_print("Loading cached data...", indent=4)
@@ -44,7 +48,9 @@ class BaseMonitor:
         try:
             changes = self.compare_data(cached_data, processed_data)
         except Exception as e:
-            logger.log_error(self.username, f"{self.__class__.__name__} failed to compare data", e)
+            logger.log_error(
+                self.username, f"{self.__class__.__name__} failed to compare data", e
+            )
             return
 
         if changes:
@@ -58,7 +64,11 @@ class BaseMonitor:
                 self.notify_changes(changes, notifiers)
                 logger.console_success("Data saved and notifications sent", indent=4)
             except Exception as e:
-                logger.log_error(self.username, f"{self.__class__.__name__} failed to send notifications", e)
+                logger.log_error(
+                    self.username,
+                    f"{self.__class__.__name__} failed to send notifications",
+                    e,
+                )
         else:
             logger.console_info("No changes detected", indent=4)
             self.save_data(processed_data)

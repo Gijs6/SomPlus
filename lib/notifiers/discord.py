@@ -156,7 +156,11 @@ class DiscordNotifier:
 
             if grade.get("toetssoort"):
                 fields.append(
-                    {"name": "Toetssoort", "value": grade.get("toetssoort"), "inline": True}
+                    {
+                        "name": "Toetssoort",
+                        "value": grade.get("toetssoort"),
+                        "inline": True,
+                    }
                 )
 
             if grade.get("herkansing") and grade.get("herkansing") != "Geen":
@@ -390,7 +394,11 @@ class DiscordNotifier:
 
             if grade.get("toetssoort"):
                 fields.append(
-                    {"name": "Toetssoort", "value": grade.get("toetssoort"), "inline": True}
+                    {
+                        "name": "Toetssoort",
+                        "value": grade.get("toetssoort"),
+                        "inline": True,
+                    }
                 )
 
             embed = {
@@ -489,11 +497,24 @@ class DiscordNotifier:
         webhook_url = config.get_discord_schedule_webhook_url(user_config)
         self.send_webhook(webhook_url, payload)
 
-    def send_error_notification(self, username, user_config, error_summary):
+    def send_error_notification(self, username, user_config, error_list):
         if not config.get_discord_errors_enabled(user_config):
             return
 
-        error_count = sum(len(errors) for errors in error_summary.values())
+        error_count = sum(e.get("count", 1) for e in error_list)
+
+        lines = []
+        for entry in error_list:
+            line = f"- **{entry['message']}**"
+            if entry.get("count", 1) > 1:
+                line += f" (x{entry['count']})"
+            if entry.get("detail"):
+                line += f": {entry['detail']}"
+            lines.append(line)
+
+        description = "\n".join(lines)
+        if len(description) > 4000:
+            description = description[:3997] + "..."
 
         content = None
         mention_role_id = config.get_discord_errors_mention_role_id(user_config)
@@ -502,7 +523,7 @@ class DiscordNotifier:
 
         embed = {
             "title": f"Errors ({error_count})",
-            "description": f"{error_count} error{'s' if error_count != 1 else ''} occurred in the past hour",
+            "description": description,
             "color": config.get_discord_errors_color(user_config),
             "footer": {"text": "SomPlus"},
         }
@@ -523,7 +544,7 @@ class DiscordNotifier:
             response = requests.post(webhook_url, json=payload)
             response.raise_for_status()
         except Exception as e:
-            logger.console_error(f"Discord webhook failed: {e}", indent=4)
+            logger.log_warning("system", f"Discord webhook failed: {e}")
             raise
 
     def format_changes_detailed(self, changes):

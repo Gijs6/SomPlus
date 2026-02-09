@@ -37,7 +37,7 @@ def get_current_time_window(sleep_schedule):
             if start_minutes <= current_time_minutes < end_minutes:
                 return window["sleep"]
 
-    logger.log_error("scheduler", "No matching time window found, using default 300s")
+    logger.log_warning("scheduler", "No matching time window found, using default 300s")
     return 300
 
 
@@ -62,11 +62,13 @@ def main():
     try:
         app_config = load_json(config_path)
     except Exception as e:
-        logger.log_error("scheduler", "Failed to load configuration", e)
+        logger.log_warning("scheduler", "Failed to load configuration", e)
         sys.exit(1)
 
     if "scheduler" not in app_config or "sleep_schedule" not in app_config["scheduler"]:
-        logger.log_error("scheduler", "No sleep_schedule found in app.json under 'scheduler'")
+        logger.log_warning(
+            "scheduler", "No sleep_schedule found in app.json under 'scheduler'"
+        )
         sys.exit(1)
 
     sleep_schedule = app_config["scheduler"]["sleep_schedule"]
@@ -100,7 +102,7 @@ def main():
         if success:
             logger.console_success("Monitor completed successfully")
         else:
-            logger.log_error("scheduler", "Monitor completed with errors")
+            logger.log_warning("scheduler", "Monitor completed with errors")
 
         logger.console_print(f"\nSleeping for {current_sleep}s until next check...\n")
         time.sleep(current_sleep)
@@ -115,5 +117,5 @@ if __name__ == "__main__":
         logger.console_print("=" * 60 + "\n")
         sys.exit(0)
     except Exception as e:
-        logger.log_error("scheduler", "Scheduler crashed", e)
+        logger.log_critical("scheduler", "Scheduler crashed", e)
         sys.exit(1)
