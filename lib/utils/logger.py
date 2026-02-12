@@ -134,13 +134,45 @@ def get_previous_hour_errors():
     now = datetime.now()
     previous_hour = now - timedelta(hours=1)
     hour_key = previous_hour.strftime("%Y-%m-%dT%H:00:00")
-    return error_tracking.get(hour_key, {}), hour_key
+
+    errors = error_tracking.get(hour_key, {})
+    if errors:
+        return errors, hour_key
+
+    previous_date = previous_hour.strftime("%Y-%m-%d")
+    today = now.strftime("%Y-%m-%d")
+    if previous_date != today and log_dir:
+        yesterday_path = os.path.join(log_dir, "errors", f"{previous_date}_errors.json")
+        if os.path.exists(yesterday_path):
+            try:
+                with open(yesterday_path, "r") as f:
+                    yesterday_tracking = json.load(f)
+                return yesterday_tracking.get(hour_key, {}), hour_key
+            except (json.JSONDecodeError, IOError):
+                pass
+
+    return {}, hour_key
 
 
 def clear_hour_errors(hour_key):
     if hour_key in error_tracking:
         del error_tracking[hour_key]
         save_error_tracking()
+
+    hour_date = hour_key[:10]
+    today = datetime.now().strftime("%Y-%m-%d")
+    if hour_date != today and log_dir:
+        other_path = os.path.join(log_dir, "errors", f"{hour_date}_errors.json")
+        if os.path.exists(other_path):
+            try:
+                with open(other_path, "r") as f:
+                    other_tracking = json.load(f)
+                if hour_key in other_tracking:
+                    del other_tracking[hour_key]
+                    with open(other_path, "w") as f:
+                        json.dump(other_tracking, f, indent=2)
+            except (json.JSONDecodeError, IOError):
+                pass
 
 
 def console_print(message, indent=0, color="", bold=False):

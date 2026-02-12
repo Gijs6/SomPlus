@@ -64,6 +64,9 @@ class GradeMonitor(BaseMonitor):
             additional = grade.get("additionalObjects", {})
             subject = additional.get("vaknaam", "")
             test = grade.get("omschrijving", "")
+            kolom_id = grade.get("kolomId")
+            if kolom_id is not None:
+                return (subject, test, kolom_id)
             return (subject, test)
 
         old_dict = {make_key(g): g for g in old_data}
@@ -84,6 +87,14 @@ class GradeMonitor(BaseMonitor):
                 new_result = new_grade.get("formattedResultaat", "")
                 if old_result != new_result:
                     grade_changes["resultaat"] = {"old": old_result, "new": new_result}
+
+                old_cijfer = old_grade.get("cijfer")
+                new_cijfer = new_grade.get("cijfer")
+                if old_cijfer != new_cijfer and "resultaat" not in grade_changes:
+                    grade_changes["resultaat"] = {
+                        "old": old_result or str(old_cijfer),
+                        "new": new_result or str(new_cijfer),
+                    }
 
                 old_has_herkansing = old_grade.get("cijferHerkansing1") is not None
                 new_has_herkansing = new_grade.get("cijferHerkansing1") is not None
@@ -114,6 +125,24 @@ class GradeMonitor(BaseMonitor):
                     grade_changes["weging"] = {
                         "old": old_grade.get("weging"),
                         "new": new_grade.get("weging"),
+                    }
+
+                if old_grade.get("examenWeging") != new_grade.get("examenWeging"):
+                    grade_changes["examenWeging"] = {
+                        "old": old_grade.get("examenWeging"),
+                        "new": new_grade.get("examenWeging"),
+                    }
+
+                if old_grade.get("teltNietmee") != new_grade.get("teltNietmee"):
+                    grade_changes["teltNietmee"] = {
+                        "old": old_grade.get("teltNietmee"),
+                        "new": new_grade.get("teltNietmee"),
+                    }
+
+                if old_grade.get("vrijstelling") != new_grade.get("vrijstelling"):
+                    grade_changes["vrijstelling"] = {
+                        "old": old_grade.get("vrijstelling"),
+                        "new": new_grade.get("vrijstelling"),
                     }
 
                 if old_grade.get("periode") != new_grade.get("periode"):

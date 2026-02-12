@@ -2,11 +2,12 @@ import requests
 
 
 class SomTodayAPI:
-    def __init__(self, api_base, oauth_url, client_id, pagination_size=100):
+    def __init__(self, api_base, oauth_url, client_id, pagination_size=100, timeout=30):
         self.api_base = api_base
         self.oauth_url = oauth_url
         self.client_id = client_id
         self.pagination_size = pagination_size
+        self.timeout = timeout
 
     def refresh_token(self, refresh_token):
         data = {
@@ -15,7 +16,7 @@ class SomTodayAPI:
             "client_id": self.client_id,
         }
 
-        response = requests.post(self.oauth_url, data=data)
+        response = requests.post(self.oauth_url, data=data, timeout=self.timeout)
         response.raise_for_status()
 
         result = response.json()
@@ -59,7 +60,7 @@ class SomTodayAPI:
 
             while True:
                 headers["Range"] = f"items={range_start}-{range_start + range_size - 1}"
-                response = requests.get(url, headers=headers, params=params)
+                response = requests.get(url, headers=headers, params=params, timeout=self.timeout)
                 response.raise_for_status()
 
                 batch = response.json().get("items", [])
@@ -82,7 +83,7 @@ class SomTodayAPI:
         }
         params = {"begindatum": start_date, "einddatum": end_date}
 
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=self.timeout)
         response.raise_for_status()
 
         return response.json().get("items", [])
@@ -94,7 +95,7 @@ class SomTodayAPI:
             "Accept": "application/json",
         }
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=self.timeout)
         response.raise_for_status()
 
         return response.json().get("items", [])

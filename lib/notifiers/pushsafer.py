@@ -141,6 +141,25 @@ class PushSaferNotifier:
                 new_w = grade_changes["weging"]["new"]
                 changes_list.append(f"weging: {old_w} → {new_w}")
 
+            if "examenWeging" in grade_changes:
+                old_ew = grade_changes["examenWeging"]["old"]
+                new_ew = grade_changes["examenWeging"]["new"]
+                changes_list.append(f"examen weging: {old_ew} → {new_ew}")
+
+            if "teltNietmee" in grade_changes:
+                old_t = grade_changes["teltNietmee"]["old"]
+                new_t = grade_changes["teltNietmee"]["new"]
+                old_str = "ja" if old_t else "nee"
+                new_str = "ja" if new_t else "nee"
+                changes_list.append(f"telt niet mee: {old_str} → {new_str}")
+
+            if "vrijstelling" in grade_changes:
+                old_v = grade_changes["vrijstelling"]["old"]
+                new_v = grade_changes["vrijstelling"]["new"]
+                old_str = "ja" if old_v else "nee"
+                new_str = "ja" if new_v else "nee"
+                changes_list.append(f"vrijstelling: {old_str} → {new_str}")
+
             if "periode" in grade_changes:
                 old_p = grade_changes["periode"]["old"]
                 new_p = grade_changes["periode"]["new"]
@@ -300,26 +319,32 @@ class PushSaferNotifier:
                 change_texts.append(
                     f"{day_name}: {change['subject']} +{count} extra les{'sen' if count > 1 else ''}"
                 )
+            elif change["type"] == "VERPLAATSING":
+                old_periods = change.get("old_periods", [])
+                new_periods = change.get("new_periods", [])
+                old_str = ", ".join(f"{p}e" for p in old_periods)
+                new_str = ", ".join(f"{p}e" for p in new_periods)
+                change_texts.append(
+                    f"{day_name}: {change['subject']} verplaatst ({old_str} uur -> {new_str} uur)"
+                )
             elif change["type"] == "SUBJECT_CHANGE":
                 period = change.get("period", "?")
                 old = change["old"]
                 new = change["new"]
                 change_texts.append(f"{day_name} {period}e uur: {old} -> {new}")
             elif change["type"] == "TEACHER_CHANGE":
-                period = change.get("period", "?")
                 subject = change["subject"]
                 old_teacher = change["old"]
                 new_teacher = change["new"]
                 change_texts.append(
-                    f"{day_name} {period}e {subject}: docent {old_teacher} -> {new_teacher}"
+                    f"{day_name} {subject}: docent {old_teacher} -> {new_teacher}"
                 )
             elif change["type"] == "LOCATION_CHANGE":
-                period = change.get("period", "?")
                 subject = change["subject"]
                 old_loc = change["old"]
                 new_loc = change["new"]
                 change_texts.append(
-                    f"{day_name} {period}e {subject}: lokaal {old_loc} -> {new_loc}"
+                    f"{day_name} {subject}: lokaal {old_loc} -> {new_loc}"
                 )
 
         result = "\n".join(change_texts)

@@ -52,19 +52,23 @@ class ScheduleMonitor(BaseMonitor):
         if changes:
             change_count = len(changes) if isinstance(changes, list) else 1
             logger.console_print(
-                f"Found {change_count} change(s), saving data...", indent=4
+                f"Found {change_count} change(s), sending notifications...", indent=4
             )
-            self.save_data(processed_data)
-            logger.console_print("Sending notifications...", indent=4)
             try:
                 self.notify_changes(changes, notifiers, rolled_over)
-                logger.console_success("Saved data and sent notifications", indent=4)
+                logger.console_success("Notifications sent", indent=4)
             except Exception as e:
                 logger.log_error(
                     self.username,
                     f"{self.__class__.__name__} failed to send notifications",
                     e,
                 )
+                logger.console_warning(
+                    "Skipping cache save so changes are retried next run", indent=4
+                )
+                return
+            self.save_data(processed_data)
+            logger.console_success("Data saved", indent=4)
         else:
             logger.console_info("No changes detected", indent=4)
             self.save_data(processed_data)
@@ -100,6 +104,7 @@ class ScheduleMonitor(BaseMonitor):
     def process_data(self, raw_data):
         processed_lessons = []
         filters = config.get_schedule_filters(self.user_config)
+        exclude_subjects = filters.get("exclude_subjects", [])
 
         for entry in raw_data:
             clean_entry = self.clean_nested_object(entry)
@@ -110,17 +115,26 @@ class ScheduleMonitor(BaseMonitor):
                 continue
 
             vakken = clean_entry.get("vakken", [])
+            subject_name = ""
             has_subject = False
             if vakken:
                 has_subject = True
+                subject_name = vakken[0].get("afkorting", "")
             else:
                 titel = clean_entry.get("titel", "")
                 if titel:
                     parts = [p.strip() for p in titel.split("-")]
-                    if len(parts) >= 2:
+                    if len(parts) >= 3:
                         has_subject = True
+                        subject_name = parts[1]
+                    elif len(parts) == 2:
+                        has_subject = True
+                        subject_name = parts[0]
 
             if not has_subject:
+                continue
+
+            if subject_name and subject_name in exclude_subjects:
                 continue
 
             processed_lessons.append(clean_entry)
@@ -187,10 +201,10 @@ class ScheduleMonitor(BaseMonitor):
             standard_schedule = self.find_best_standard_schedule(access_token)
             if not standard_schedule:
                 logger.console_warning(
-                    "Could not generate standard schedule, using empty baseline",
+                    "Could not generate standard schedule, skipping comparison",
                     indent=4,
                 )
-                old_lessons = []
+                return []
             else:
                 old_lessons = standard_schedule
         else:
@@ -266,16 +280,19 @@ class ScheduleMonitor(BaseMonitor):
         changes = []
 
         for day in range(5):
-            old_day = [
-                l for l in old_lessons if self.extract_lesson_info(l)["day"] == day
+            old_day_info = [
+                (l, self.extract_lesson_info(l))
+                for l in old_lessons
+                if self.extract_lesson_info(l)["day"] == day
             ]
-            new_day = [
-                l for l in new_lessons if self.extract_lesson_info(l)["day"] == day
+            new_day_info = [
+                (l, self.extract_lesson_info(l))
+                for l in new_lessons
+                if self.extract_lesson_info(l)["day"] == day
             ]
 
             old_subject_hours = {}
-            for lesson in old_day:
-                info = self.extract_lesson_info(lesson)
+            for lesson, info in old_day_info:
                 subject = info["subject"]
                 if subject:
                     hours = self.get_lesson_hours(lesson)
@@ -284,8 +301,7 @@ class ScheduleMonitor(BaseMonitor):
                     )
 
             new_subject_hours = {}
-            for lesson in new_day:
-                info = self.extract_lesson_info(lesson)
+            for lesson, info in new_day_info:
                 subject = info["subject"]
                 if subject:
                     hours = self.get_lesson_hours(lesson)
@@ -335,23 +351,92 @@ class ScheduleMonitor(BaseMonitor):
                         }
                     )
 
+            old_subject_periods = {}
+            for lesson, info in old_day_info:
+                subject = info["subject"]
+                if subject and info["period"] is not None:
+                    old_subject_periods.setdefault(subject, set()).add(info["period"])
+
+            new_subject_periods = {}
+            for lesson, info in new_day_info:
+                subject = info["subject"]
+                if subject and info["period"] is not None:
+                    new_subject_periods.setdefault(subject, set()).add(info["period"])
+
+            for subject in all_subjects:
+                old_hours = old_subject_hours.get(subject, 0)
+                new_hours = new_subject_hours.get(subject, 0)
+                if old_hours == new_hours and old_hours > 0:
+                    old_periods = old_subject_periods.get(subject, set())
+                    new_periods = new_subject_periods.get(subject, set())
+                    if old_periods != new_periods:
+                        changes.append(
+                            {
+                                "day": day,
+                                "type": "VERPLAATSING",
+                                "subject": subject,
+                                "old_periods": sorted(old_periods),
+                                "new_periods": sorted(new_periods),
+                            }
+                        )
+
+            for subject in all_subjects:
+                if subject not in old_subject_hours or subject not in new_subject_hours:
+                    continue
+
+                old_subject_lessons = [
+                    info for _, info in old_day_info if info["subject"] == subject
+                ]
+                new_subject_lessons = [
+                    info for _, info in new_day_info if info["subject"] == subject
+                ]
+
+                old_teachers = set(
+                    i["teacher"] for i in old_subject_lessons if i["teacher"]
+                )
+                new_teachers = set(
+                    i["teacher"] for i in new_subject_lessons if i["teacher"]
+                )
+                old_locations = set(
+                    i["location"] for i in old_subject_lessons if i["location"]
+                )
+                new_locations = set(
+                    i["location"] for i in new_subject_lessons if i["location"]
+                )
+
+                if old_teachers != new_teachers and old_teachers and new_teachers:
+                    changes.append(
+                        {
+                            "day": day,
+                            "type": "TEACHER_CHANGE",
+                            "subject": subject,
+                            "old": ", ".join(sorted(old_teachers)),
+                            "new": ", ".join(sorted(new_teachers)),
+                        }
+                    )
+
+                if old_locations != new_locations and old_locations and new_locations:
+                    changes.append(
+                        {
+                            "day": day,
+                            "type": "LOCATION_CHANGE",
+                            "subject": subject,
+                            "old": ", ".join(sorted(old_locations)),
+                            "new": ", ".join(sorted(new_locations)),
+                        }
+                    )
+
             old_by_period = {}
-            for l in old_day:
-                info = self.extract_lesson_info(l)
+            for l, info in old_day_info:
                 key = info["period"]
-                if key and key not in old_by_period:
-                    old_by_period[key] = []
-                if key:
-                    old_by_period[key].append((l, info))
+                if key is not None:
+                    old_by_period.setdefault(key, []).append((l, info))
 
             new_by_period = {}
-            for l in new_day:
-                info = self.extract_lesson_info(l)
+            for l, info in new_day_info:
                 key = info["period"]
-                if key and key not in new_by_period:
-                    new_by_period[key] = []
-                if key:
-                    new_by_period[key].append((l, info))
+                if key is not None:
+                    new_by_period.setdefault(key, []).append((l, info))
 
             for period in set(old_by_period.keys()) & set(new_by_period.keys()):
                 old_lessons_in_period = old_by_period[period]
@@ -377,30 +462,6 @@ class ScheduleMonitor(BaseMonitor):
                                     }
                                 )
                                 break
-                    else:
-                        new_lesson, new_info = matching_new[0]
-                        if old_info["teacher"] != new_info["teacher"]:
-                            changes.append(
-                                {
-                                    "day": day,
-                                    "period": period,
-                                    "type": "TEACHER_CHANGE",
-                                    "subject": old_info["subject"],
-                                    "old": old_info["teacher"],
-                                    "new": new_info["teacher"],
-                                }
-                            )
-                        if old_info["location"] != new_info["location"]:
-                            changes.append(
-                                {
-                                    "day": day,
-                                    "period": period,
-                                    "type": "LOCATION_CHANGE",
-                                    "subject": old_info["subject"],
-                                    "old": old_info["location"],
-                                    "new": new_info["location"],
-                                }
-                            )
 
         return changes
 

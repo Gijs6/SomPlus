@@ -571,20 +571,26 @@ class DiscordNotifier:
                 lines.append(
                     f"**{day_name}**: extra les **{change['subject']}** (+{count})"
                 )
+            elif change["type"] == "VERPLAATSING":
+                old_periods = change.get("old_periods", [])
+                new_periods = change.get("new_periods", [])
+                old_str = ", ".join(f"{p}e" for p in old_periods)
+                new_str = ", ".join(f"{p}e" for p in new_periods)
+                lines.append(
+                    f"**{day_name}**: **{change['subject']}** verplaatst ({old_str} uur -> {new_str} uur)"
+                )
             elif change["type"] == "SUBJECT_CHANGE":
                 period = change.get("period", "?")
                 lines.append(
                     f"**{day_name}** {period}e uur: **{change['old']}** -> **{change['new']}**"
                 )
             elif change["type"] == "TEACHER_CHANGE":
-                period = change.get("period", "?")
                 lines.append(
-                    f"**{day_name}** {period}e uur **{change['subject']}**: docent {change['old']} -> {change['new']}"
+                    f"**{day_name}** **{change['subject']}**: docent {change['old']} -> {change['new']}"
                 )
             elif change["type"] == "LOCATION_CHANGE":
-                period = change.get("period", "?")
                 lines.append(
-                    f"**{day_name}** {period}e uur **{change['subject']}**: lokaal {change['old']} -> {change['new']}"
+                    f"**{day_name}** **{change['subject']}**: lokaal {change['old']} -> {change['new']}"
                 )
 
         return "\n".join(lines) if lines else "Geen wijzigingen"

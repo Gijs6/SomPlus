@@ -1,20 +1,22 @@
+_MISSING = object()
+
+
 def get(config, path, default=None):
     keys = path.split(".")
     value = config
 
     for key in keys:
         if isinstance(value, dict):
-            value = value.get(key, {})
+            value = value.get(key, _MISSING)
+            if value is _MISSING:
+                return default
         else:
             return default
-
-    if value == {} and default is not None:
-        return default
 
     if value is None and default is not None:
         return default
 
-    return value if value != {} else default
+    return value
 
 
 def get_schedule_enabled(user_config):

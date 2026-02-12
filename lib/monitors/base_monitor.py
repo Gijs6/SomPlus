@@ -56,19 +56,23 @@ class BaseMonitor:
         if changes:
             change_count = len(changes) if isinstance(changes, list) else 1
             logger.console_print(
-                f"Found {change_count} change(s), saving data...", indent=4
+                f"Found {change_count} change(s), sending notifications...", indent=4
             )
-            self.save_data(processed_data)
-            logger.console_print("Sending notifications...", indent=4)
             try:
                 self.notify_changes(changes, notifiers)
-                logger.console_success("Data saved and notifications sent", indent=4)
+                logger.console_success("Notifications sent", indent=4)
             except Exception as e:
                 logger.log_error(
                     self.username,
                     f"{self.__class__.__name__} failed to send notifications",
                     e,
                 )
+                logger.console_warning(
+                    "Skipping cache save so changes are retried next run", indent=4
+                )
+                return
+            self.save_data(processed_data)
+            logger.console_success("Data saved", indent=4)
         else:
             logger.console_info("No changes detected", indent=4)
             self.save_data(processed_data)
